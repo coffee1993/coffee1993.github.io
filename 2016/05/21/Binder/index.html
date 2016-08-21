@@ -1,0 +1,1091 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css"/>
+
+
+
+
+  <link href="//fonts.googleapis.com/css?family=Lato:300,400,700,400italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=0.5.0" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Hexo, NexT" />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=0.5.0" />
+
+
+
+
+
+
+<meta name="description" content="IPC之Binder初探
+
+Binder是什么
+Binder具有粘结剂的意思，将Client、Server、Service Manager和Binder驱动程序四个组件粘连在一起
+1 Android中一种虚拟的物理设备，/dev/binder，在Linux中没有这种通信方式。
+2 Android中的一个类，Android.os.Binder，实现了IBinder接口。
+3 Android Fra">
+<meta property="og:type" content="article">
+<meta property="og:title" content="IPC之Binder原理初探">
+<meta property="og:url" content="http://coffee1993.github.io/2016/05/21/Binder/index.html">
+<meta property="og:site_name" content="空">
+<meta property="og:description" content="IPC之Binder初探
+
+Binder是什么
+Binder具有粘结剂的意思，将Client、Server、Service Manager和Binder驱动程序四个组件粘连在一起
+1 Android中一种虚拟的物理设备，/dev/binder，在Linux中没有这种通信方式。
+2 Android中的一个类，Android.os.Binder，实现了IBinder接口。
+3 Android Fra">
+<meta property="og:image" content="http://7xrw2w.com1.z0.glb.clouddn.com/Binder.png">
+<meta property="og:image" content="http://7xrw2w.com1.z0.glb.clouddn.com/Binder_transact.png">
+<meta property="og:updated_time" content="2016-06-10T04:41:07.750Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="IPC之Binder原理初探">
+<meta name="twitter:description" content="IPC之Binder初探
+
+Binder是什么
+Binder具有粘结剂的意思，将Client、Server、Service Manager和Binder驱动程序四个组件粘连在一起
+1 Android中一种虚拟的物理设备，/dev/binder，在Linux中没有这种通信方式。
+2 Android中的一个类，Android.os.Binder，实现了IBinder接口。
+3 Android Fra">
+<meta name="twitter:image" content="http://7xrw2w.com1.z0.glb.clouddn.com/Binder.png">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Muse',
+    sidebar: {"position":"left","display":"post"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: 0,
+      author: '博主'
+    }
+  };
+</script>
+
+  <title> IPC之Binder原理初探 | 空 </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">空</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">我要信奉:我学过的每一样东西，我遭受的每一样苦难，都会在我一生中的某个时候派上用场 ——佩内洛普·菲兹杰拉德 《离岸》</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-home fa-fw"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-th fa-fw"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-archive fa-fw"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-tags fa-fw"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-user fa-fw"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      <li> <a title="把这个链接拖到你的Chrome收藏夹工具栏中" href='javascript:(function() {
+    function c() {
+        var e = document.createElement("link");
+        e.setAttribute("type", "text/css");
+        e.setAttribute("rel", "stylesheet");
+        e.setAttribute("href", f);
+        e.setAttribute("class", l);
+        document.body.appendChild(e)
+    }
+
+    function h() {
+        var e = document.getElementsByClassName(l);
+        for (var t = 0; t < e.length; t++) {
+            document.body.removeChild(e[t])
+        }
+    }
+
+    function p() {
+        var e = document.createElement("div");
+        e.setAttribute("class", a);
+        document.body.appendChild(e);
+        setTimeout(function() {
+            document.body.removeChild(e)
+        }, 100)
+    }
+
+    function d(e) {
+        return {
+            height : e.offsetHeight,
+            width : e.offsetWidth
+        }
+    }
+
+    function v(i) {
+        var s = d(i);
+        return s.height > e && s.height < n && s.width > t && s.width < r
+    }
+
+    function m(e) {
+        var t = e;
+        var n = 0;
+        while (!!t) {
+            n += t.offsetTop;
+            t = t.offsetParent
+        }
+        return n
+    }
+
+    function g() {
+        var e = document.documentElement;
+        if (!!window.innerWidth) {
+            return window.innerHeight
+        } else if (e && !isNaN(e.clientHeight)) {
+            return e.clientHeight
+        }
+        return 0
+    }
+
+    function y() {
+        if (window.pageYOffset) {
+            return window.pageYOffset
+        }
+        return Math.max(document.documentElement.scrollTop, document.body.scrollTop)
+    }
+
+    function E(e) {
+        var t = m(e);
+        return t >= w && t <= b + w
+    }
+
+    function S() {
+        var e = document.createElement("audio");
+        e.setAttribute("class", l);
+        e.src = i;
+        e.loop = false;
+        e.addEventListener("canplay", function() {
+            setTimeout(function() {
+                x(k)
+            }, 500);
+            setTimeout(function() {
+                N();
+                p();
+                for (var e = 0; e < O.length; e++) {
+                    T(O[e])
+                }
+            }, 15500)
+        }, true);
+        e.addEventListener("ended", function() {
+            N();
+            h()
+        }, true);
+        e.innerHTML = " <p>If you are reading this, it is because your browser does not support the audio element. We recommend that you get a new browser.</p> <p>";
+        document.body.appendChild(e);
+        e.play()
+    }
+
+    function x(e) {
+        e.className += " " + s + " " + o
+    }
+
+    function T(e) {
+        e.className += " " + s + " " + u[Math.floor(Math.random() * u.length)]
+    }
+
+    function N() {
+        var e = document.getElementsByClassName(s);
+        var t = new RegExp("\\b" + s + "\\b");
+        for (var n = 0; n < e.length; ) {
+            e[n].className = e[n].className.replace(t, "")
+        }
+    }
+
+    var e = 30;
+    var t = 30;
+    var n = 350;
+    var r = 350;
+    var i = "//s3.amazonaws.com/moovweb-marketing/playground/harlem-shake.mp3";
+    var s = "mw-harlem_shake_me";
+    var o = "im_first";
+    var u = ["im_drunk", "im_baked", "im_trippin", "im_blown"];
+    var a = "mw-strobe_light";
+    var f = "//s3.amazonaws.com/moovweb-marketing/playground/harlem-shake-style.css";
+    var l = "mw_added_css";
+    var b = g();
+    var w = y();
+    var C = document.getElementsByTagName("*");
+    var k = null;
+    for (var L = 0; L < C.length; L++) {
+        var A = C[L];
+        if (v(A)) {
+            if (E(A)) {
+                k = A;
+                break
+            }
+        }
+    }
+    if (A === null) {
+        console.warn("Could not find a node of the right size. Please try a different page.");
+        return
+    }
+    c();
+    S();
+    var O = [];
+    for (var L = 0; L < C.length; L++) {
+        var A = C[L];
+        if (v(A)) {
+            O.push(A)
+        }
+    }
+})()    '>High一下</a> </li>
+
+      
+
+
+    </ul>
+  
+
+  
+</nav>
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                IPC之Binder原理初探
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-05-21T13:07:27+08:00" content="2016-05-21">
+              2016-05-21
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Android/" itemprop="url" rel="index">
+                    <span itemprop="name">Android</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2016/05/21/Binder/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/05/21/Binder/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <blockquote>
+<p>IPC之Binder初探</p>
+</blockquote>
+<h2 id="Binder是什么"><a href="#Binder是什么" class="headerlink" title="Binder是什么"></a>Binder是什么</h2><ul>
+<li>Binder具有粘结剂的意思，将Client、Server、Service Manager和Binder驱动程序四个组件粘连在一起</li>
+<li>1 Android中一种虚拟的物理设备，/dev/binder，在Linux中没有这种通信方式。</li>
+<li>2 Android中的一个类，Android.os.Binder，实现了IBinder接口。</li>
+<li>3 Android FrameWork中连接ActivityManager,WindowsManager和相应的ManagerService的桥梁。</li>
+<li>4 Android应用中客户端和服务端进行通信的媒介， 客户端bindService，服务端返回一个Binder对象，客户端通过Binder对象调用服务端的服务和数据，服务包含普通服务和AIDL服务。</li>
+</ul>
+<a id="more"></a>
+<h2 id="Binder和AIDL关系，为何要分析AIDL"><a href="#Binder和AIDL关系，为何要分析AIDL" class="headerlink" title="Binder和AIDL关系，为何要分析AIDL"></a>Binder和AIDL关系，为何要分析AIDL</h2><p>在Binder用于Service通信的同时，包含Messenger和AIDL，Messenger的底层就是AIDL，分析Binder之前需要弄懂AIDL工作机制。</p>
+<h2 id="AIDL-Android-Interface-definition-language"><a href="#AIDL-Android-Interface-definition-language" class="headerlink" title="AIDL(Android Interface definition language)"></a>AIDL(Android Interface definition language)</h2><h3 id="何为AIDL"><a href="#何为AIDL" class="headerlink" title="何为AIDL"></a>何为AIDL</h3><p>全称参上，AIDL是进程间通信接口定义语言，顾名思义，笔者本章所分析的都是IPC(Inner-process-communication)进程间通信相关内容，AIDL就是其通信接口，AIDL如何构成，其怎么工作，后面分析。它具体是什么，有什么作用需要分析了它的整个面貌之后才能知晓。</p>
+<h3 id="AIDL构成"><a href="#AIDL构成" class="headerlink" title="AIDL构成"></a>AIDL构成</h3><p>当我们作为服务端需要提供进程间访问服务时，Android SDK 可以为我们定义的一个aidl接口文件自动生成一个对于的接口类，如我们定义一IBookManger.aidl文件，Book.java，和Book.aidl文件：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.example.ipctest.aidl;</span><br><span class="line"><span class="keyword">import</span> com.example.ipctest.aidl.Book;</span><br><span class="line"><span class="class"><span class="keyword">interface</span> <span class="title">IBookManager</span> </span>&#123;</span><br><span class="line">  <span class="function">List&lt;Book&gt; <span class="title">getBookList</span><span class="params">()</span></span>;</span><br><span class="line">  <span class="function"><span class="keyword">void</span> <span class="title">addBook</span><span class="params">(in Book book)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>Book.aidl：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.example.ipctest.aidl;</span><br><span class="line">parcelable Book;</span><br></pre></td></tr></table></figure></p>
+<p>Book.java:<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.example.ipctest.aidl;</span><br><span class="line"><span class="keyword">import</span> android.os.Parcel;</span><br><span class="line"><span class="keyword">import</span> android.os.Parcelable;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Book</span> <span class="keyword">implements</span> <span class="title">Parcelable</span></span>&#123;</span><br><span class="line">	<span class="keyword">private</span> <span class="keyword">int</span> bookId;</span><br><span class="line">	<span class="keyword">private</span> String bookName;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="title">Book</span><span class="params">(<span class="keyword">int</span> bookId, String bookName)</span> </span>&#123;</span><br><span class="line">		<span class="keyword">this</span>.bookId = bookId;</span><br><span class="line">		<span class="keyword">this</span>.bookName = bookName;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="keyword">private</span> <span class="title">Book</span><span class="params">(Parcel source)</span> </span>&#123;</span><br><span class="line">		bookId = source.readInt();</span><br><span class="line">		bookName = source.readString();</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">describeContents</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		<span class="comment">// TODO Auto-generated method stub</span></span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">writeToParcel</span><span class="params">(Parcel dest, <span class="keyword">int</span> flags)</span> </span>&#123;</span><br><span class="line">		dest.writeInt(bookId);</span><br><span class="line">		dest.writeString(bookName);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> Parcelable.Creator&lt;Book&gt; CREATOR = <span class="keyword">new</span> Parcelable.Creator&lt;Book&gt;() &#123;</span><br><span class="line"></span><br><span class="line">		<span class="meta">@Override</span></span><br><span class="line">		<span class="function"><span class="keyword">public</span> Book <span class="title">createFromParcel</span><span class="params">(Parcel source)</span> </span>&#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="keyword">new</span> Book(source);</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="meta">@Override</span></span><br><span class="line">		<span class="keyword">public</span> Book[] newArray(<span class="keyword">int</span> size) &#123;</span><br><span class="line">			<span class="comment">// TODO Auto-generated method stub</span></span><br><span class="line">			<span class="keyword">return</span> <span class="keyword">new</span> Book[size];</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>其中Book.java实现了Parcelable接口，通过序列化和反序列才能跨进程通信, <strong>对象不能直接跨进程传输，跨进程传输的本质就是序列化和反序列化的过程</strong>。Book.aidl中通过Parcelable 声明 Book类。IBookManger就是aidl接口文件，其中定义的addBook(Book b),和getBookList()方法就是我们客户端需要请求服务端的方法。三个文件定义好之后，SDK就会在gen目录下对应包下生产一个IBookManager.java接口，这个接口有一个内部类abstract class Stub (桩)，Stub继承Binder实现IBookManger.java接口,Stub就是系统为我们生产的一个Binder对象，Stub内部还有一个内部类proxy。</p>
+<p>系统生成的IBookManger.java<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span><br><span class="line"> * This file is auto-generated.  DO NOT MODIFY.</span><br><span class="line"> * Original file: E:\\workspace_eclipse\\IPCtest\\src\\com\\example\\ipctest\\aidl\\IBookManager.aidl</span><br><span class="line"> */</span></span><br><span class="line"><span class="keyword">package</span> com.example.ipctest.aidl;</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">IBookManager</span> <span class="keyword">extends</span> <span class="title">android</span>.<span class="title">os</span>.<span class="title">IInterface</span></span><br><span class="line"></span>&#123;</span><br><span class="line">  <span class="comment">/** Local-side IPC implementation stub class. */</span></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">abstract</span> <span class="class"><span class="keyword">class</span> <span class="title">Stub</span> <span class="keyword">extends</span> <span class="title">android</span>.<span class="title">os</span>.<span class="title">Binder</span> <span class="keyword">implements</span> <span class="title">com</span>.<span class="title">example</span>.<span class="title">ipctest</span>.<span class="title">aidl</span>.<span class="title">IBookManager</span></span><br><span class="line">  </span>&#123;</span><br><span class="line">        <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> java.lang.String DESCRIPTOR = <span class="string">"com.example.ipctest.aidl.IBookManager"</span>;</span><br><span class="line">          <span class="comment">/** Construct the stub at attach it to the interface. */</span></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="title">Stub</span><span class="params">()</span></span><br><span class="line">        </span>&#123;</span><br><span class="line">            <span class="keyword">this</span>.attachInterface(<span class="keyword">this</span>, DESCRIPTOR);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">/**</span><br><span class="line">        * Cast an IBinder object into an com.example.ipctest.aidl.IBookManager interface,</span><br><span class="line">        * generating a proxy if needed.</span><br><span class="line">        */</span>     </span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">static</span> com.example.ipctest.aidl.<span class="function">IBookManager <span class="title">asInterface</span><span class="params">(android.os.IBinder obj)</span></span><br><span class="line">        </span>&#123;</span><br><span class="line">            <span class="keyword">if</span> ((obj==<span class="keyword">null</span>)) &#123;</span><br><span class="line">              <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            android.os.IInterface iin = obj.queryLocalInterface(DESCRIPTOR);</span><br><span class="line">            <span class="keyword">if</span> (((iin!=<span class="keyword">null</span>)&amp;&amp;(iin <span class="keyword">instanceof</span> com.example.ipctest.aidl.IBookManager))) &#123;</span><br><span class="line">              <span class="keyword">return</span> ((com.example.ipctest.aidl.IBookManager)iin);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">new</span> com.example.ipctest.aidl.IBookManager.Stub.Proxy(obj);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="meta">@Override</span> <span class="keyword">public</span> android.os.<span class="function">IBinder <span class="title">asBinder</span><span class="params">()</span></span><br><span class="line">          </span>&#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">this</span>;</span><br><span class="line">          &#125;</span><br><span class="line"></span><br><span class="line">        <span class="meta">@Override</span> <span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">onTransact</span><span class="params">(<span class="keyword">int</span> code, android.os.Parcel data, android.os.Parcel reply, <span class="keyword">int</span> flags)</span> <span class="keyword">throws</span> android.os.RemoteException</span><br><span class="line">        </span>&#123;</span><br><span class="line">            <span class="keyword">switch</span> (code)</span><br><span class="line">              &#123;</span><br><span class="line">                <span class="keyword">case</span> INTERFACE_TRANSACTION:</span><br><span class="line">                  &#123;</span><br><span class="line">                    reply.writeString(DESCRIPTOR);</span><br><span class="line">                    <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">                  &#125;</span><br><span class="line">                <span class="keyword">case</span> TRANSACTION_getBookList:</span><br><span class="line">                  &#123;</span><br><span class="line">                    data.enforceInterface(DESCRIPTOR);</span><br><span class="line">                    java.util.List&lt;com.example.ipctest.aidl.Book&gt; _result = <span class="keyword">this</span>.getBookList();</span><br><span class="line">                    reply.writeNoException();</span><br><span class="line">                    reply.writeTypedList(_result);</span><br><span class="line">                    <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">                  &#125;</span><br><span class="line">                <span class="keyword">case</span> TRANSACTION_addBook:</span><br><span class="line">                  &#123;</span><br><span class="line">                    data.enforceInterface(DESCRIPTOR);</span><br><span class="line">                    com.example.ipctest.aidl.Book _arg0;</span><br><span class="line">                    <span class="keyword">if</span> ((<span class="number">0</span>!=data.readInt())) &#123;</span><br><span class="line">                    _arg0 = com.example.ipctest.aidl.Book.CREATOR.createFromParcel(data);</span><br><span class="line">                  &#125;<span class="keyword">else</span> &#123;</span><br><span class="line">                    _arg0 = <span class="keyword">null</span>;</span><br><span class="line">                  &#125;</span><br><span class="line">                    <span class="keyword">this</span>.addBook(_arg0);</span><br><span class="line">                    reply.writeNoException();</span><br><span class="line">                    <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">                  &#125;</span><br><span class="line">                &#125;</span><br><span class="line">              <span class="keyword">return</span> <span class="keyword">super</span>.onTransact(code, data, reply, flags);</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">private</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">Proxy</span> <span class="keyword">implements</span> <span class="title">com</span>.<span class="title">example</span>.<span class="title">ipctest</span>.<span class="title">aidl</span>.<span class="title">IBookManager</span></span><br><span class="line">          </span>&#123;</span><br><span class="line">              <span class="keyword">private</span> android.os.IBinder mRemote;</span><br><span class="line"></span><br><span class="line">              Proxy(android.os.IBinder remote)</span><br><span class="line">                &#123;</span><br><span class="line">                  mRemote = remote;</span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line">              <span class="meta">@Override</span> <span class="keyword">public</span> android.os.<span class="function">IBinder <span class="title">asBinder</span><span class="params">()</span></span><br><span class="line">              </span>&#123;</span><br><span class="line">                <span class="keyword">return</span> mRemote;</span><br><span class="line">              &#125;</span><br><span class="line"></span><br><span class="line">              <span class="keyword">public</span> java.lang.<span class="function">String <span class="title">getInterfaceDescriptor</span><span class="params">()</span></span><br><span class="line">              </span>&#123;</span><br><span class="line">                <span class="keyword">return</span> DESCRIPTOR;</span><br><span class="line"></span><br><span class="line">              &#125;</span><br><span class="line"></span><br><span class="line">              <span class="meta">@Override</span> <span class="keyword">public</span> java.util.List&lt;com.example.ipctest.aidl.Book&gt; getBookList() <span class="keyword">throws</span> android.os.RemoteException</span><br><span class="line">              &#123;</span><br><span class="line">                android.os.Parcel _data = android.os.Parcel.obtain();</span><br><span class="line">                android.os.Parcel _reply = android.os.Parcel.obtain();</span><br><span class="line">                java.util.List&lt;com.example.ipctest.aidl.Book&gt; _result;</span><br><span class="line">                <span class="keyword">try</span> &#123;</span><br><span class="line">                    _data.writeInterfaceToken(DESCRIPTOR);</span><br><span class="line">                    mRemote.transact(Stub.TRANSACTION_getBookList, _data, _reply, <span class="number">0</span>);</span><br><span class="line">                    _reply.readException();</span><br><span class="line">                    _result = _reply.createTypedArrayList(com.example.ipctest.aidl.Book.CREATOR);</span><br><span class="line">                &#125;<span class="keyword">finally</span> &#123;</span><br><span class="line">                  _reply.recycle();</span><br><span class="line">                  _data.recycle();</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">return</span> _result;</span><br><span class="line">              &#125;</span><br><span class="line">              <span class="meta">@Override</span> <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">addBook</span><span class="params">(com.example.ipctest.aidl.Book book)</span> <span class="keyword">throws</span> android.os.RemoteException</span><br><span class="line">              </span>&#123;</span><br><span class="line">                android.os.Parcel _data = android.os.Parcel.obtain();</span><br><span class="line">                android.os.Parcel _reply = android.os.Parcel.obtain();</span><br><span class="line">                <span class="keyword">try</span> &#123;</span><br><span class="line">                  _data.writeInterfaceToken(DESCRIPTOR);</span><br><span class="line">                  <span class="keyword">if</span> ((book!=<span class="keyword">null</span>)) &#123;</span><br><span class="line">                    _data.writeInt(<span class="number">1</span>);</span><br><span class="line">                    book.writeToParcel(_data, <span class="number">0</span>);</span><br><span class="line">                  &#125;<span class="keyword">else</span> &#123;</span><br><span class="line">                    _data.writeInt(<span class="number">0</span>);</span><br><span class="line">                  &#125;</span><br><span class="line">                  mRemote.transact(Stub.TRANSACTION_addBook, _data, _reply, <span class="number">0</span>);</span><br><span class="line">                  _reply.readException();</span><br><span class="line">                &#125;<span class="keyword">finally</span> &#123;</span><br><span class="line">                  _reply.recycle();</span><br><span class="line">                  _data.recycle();</span><br><span class="line">                &#125;</span><br><span class="line">              &#125;</span><br><span class="line">          &#125;</span><br><span class="line">          <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> TRANSACTION_getBookList = (android.os.IBinder.FIRST_CALL_TRANSACTION + <span class="number">0</span>);</span><br><span class="line">          <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> TRANSACTION_addBook = (android.os.IBinder.FIRST_CALL_TRANSACTION + <span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">public</span> java.util.List&lt;com.example.ipctest.aidl.Book&gt; getBookList() <span class="keyword">throws</span> android.os.RemoteException;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">addBook</span><span class="params">(com.example.ipctest.aidl.Book book)</span> <span class="keyword">throws</span> android.os.RemoteException</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>以上代码由SDK在gen目录生成，SDK生成的代码在eclipse中居然没有格式，真不能忍，改了格式后如上。IBookManager继承至IInterface接口，其本身还是一个接口，然后又有内部类，内部类还有内部类，关系稍微有点儿复杂，为了便于叙述，笔者强行画了UML类图：<br><img src="http://7xrw2w.com1.z0.glb.clouddn.com/Binder.png" alt=""></p>
+<ul>
+<li><p>asBinder：<br>参考类图和UML，IInterface接口只有一个方法asBinder()。proxy的外部类Stub才是一个真正的Binder类，Stub类的asBinder实现就是返回其this,及返回当前的Binder对象，proxy不是一个Binder的子类，其asBinder也是返回当前Binder对象。</p>
+</li>
+<li><p>DESCRIPTOR<br>Binder的标识，即包名。</p>
+</li>
+<li><p>asInterface(IBinder obj)<br>Stub中实现，其返回值有三种，null,IBookManager,其子类proxy代理类。首先<code>android.os.IInterface iin = obj.queryLocalInterface(DESCRIPTOR);</code>请求本地的服务，如果没有跨进程通信，客户端服务端在同一个进程，返回的是Stub本身，如果客户端服务端不在同一个进程，则返回系统封装后的Stub.Proxy类。这个方法主要将服务端Binder对象转化成客户端所需要的AIDL接口类型对象。一般是将具体的proxy转换成IXXXManger接口。</p>
+</li>
+<li><p>proxy:getBookList(),addBook(Book)<br>这两个方法运行在客户端，当客户端调用此方法，则创建Parcle对象：参数的输入靠data,输出靠对象reply和返回值对象List，然后通过(Binder.transact) mRemote.transact方法发起RPC(远程过程调用)请求，同时线程挂起，等待服务端的onTransact封装数据回调，然后继续执行从reply中取出RPC过程返回结果。</p>
+</li>
+<li><p>onTransact();<br>这个方法实现在Stub中，运行在服务端的Binder线程池中。其作用是对code参数进行判断，利用Stub中定义的静态int类型的Code确定请求的方法，然后执行目标方法，数据通过Parcle类进行序列化操作，执行完毕后，向reply写入返回值。</p>
+</li>
+<li><p>梳理：看完几个关键的方法，其实发现还好，不是特别复杂，现在来梳理一遍：<br>首先客户端通过asInterface获取服务端返回的IXXXManger接口，再通过IXXXManger发起远程请求，也就是调用两个方法getBookList()，addBook(Book)，这两个方法调用proxy构造时创建时依赖的IBinder接口中的transact方法发送远程过程调用RPC，同时挂起当前线程，服务端调用运行在Binder线程池中的onTransact()方法，根据code处理相关的请求。在reply中写入结果，返回Binder对象，客户端proxy在从reply中获取结果(如果有返回值)。<br>注意问题：<br>1.客户端发出请求后会被挂起，直到返回。如果服务端是耗时操作，所以不能在UI线程发起请求。<br>2.服务端运行在Binder线程池中，用同步实现。<br>流程图：<br><img src="http://7xrw2w.com1.z0.glb.clouddn.com/Binder_transact.png" alt=""><br>AIDL文件并不是实现Binder通信的必须品，这个文件的提供只是给我们一个工具生成Binder及proxy对象。<br>自己实现：在服务端就是创建一个继承IInterface接口的IBookManager接口，创建两个业务抽象方法：addBook(),getBookList(),然后创建两个用于标识这两个方法的静态字段。同时创建一个BookManagerImpl实现类实现此接口并继承Binder。在其内部创建一个Proxy内部类运行在客户端发送远程过程请求transact(),在其ManagerImpl中实现onTransact()处理请求。如下：<br>IBookManager.java：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span><br><span class="line"> * 手动实现 Binder对象 不依靠AIDL文件 客户端接口*</span><br><span class="line"> * <span class="doctag">@author</span> zhangyi</span><br><span class="line"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">IBookManager</span> <span class="keyword">extends</span> <span class="title">IInterface</span></span>&#123;</span><br><span class="line">	<span class="keyword">static</span> <span class="keyword">final</span> String DESCRIPTOR = <span class="string">"com.example.ipctest.IBookManager"</span>;</span><br><span class="line">	<span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> TRANSACTION_getBookList = IBinder.FIRST_CALL_TRANSACTION+<span class="number">0</span>;</span><br><span class="line">	<span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> TRANSACTION_addBook = IBinder.FIRST_CALL_TRANSACTION+<span class="number">1</span>;</span><br><span class="line">	<span class="function"><span class="keyword">public</span> List&lt;Book&gt; <span class="title">getBookList</span><span class="params">()</span> <span class="keyword">throws</span> RemoteException</span>;</span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">addBook</span><span class="params">(Book book)</span> <span class="keyword">throws</span> RemoteException</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p>BookManagerImpl:<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">BookManagerImpl</span> <span class="keyword">extends</span> <span class="title">Binder</span> <span class="keyword">implements</span> <span class="title">IBookManager</span></span>&#123;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="title">BookManagerImpl</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		<span class="keyword">this</span>.attachInterface(<span class="keyword">this</span>, DESCRIPTOR);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">//服务端对象转换成客户端对象所需的AIDL接口类型的对象，这种转换区分进程，如果位于同一个进程，返回服务端Stub本身，如果不同进程，返回Stub.proxy对象</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">static</span> IBookManager <span class="title">asInterface</span><span class="params">(IBinder obj)</span> </span>&#123;</span><br><span class="line">		<span class="keyword">if</span>(obj==<span class="keyword">null</span>)&#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		IInterface iin = obj.queryLocalInterface(DESCRIPTOR);</span><br><span class="line">		<span class="keyword">if</span>( iin!=<span class="keyword">null</span> &amp;&amp;(iin <span class="keyword">instanceof</span> IBookManager)) &#123;</span><br><span class="line">			<span class="keyword">return</span> (IBookManager) iin;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> <span class="keyword">new</span> BookManagerImpl.Proxy(obj);</span><br><span class="line"></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">protected</span> <span class="keyword">boolean</span> <span class="title">onTransact</span><span class="params">(<span class="keyword">int</span> code, Parcel data, Parcel reply, <span class="keyword">int</span> flags)</span></span><br><span class="line">			<span class="keyword">throws</span> RemoteException </span>&#123;</span><br><span class="line">		<span class="keyword">switch</span> (code) &#123;</span><br><span class="line">		<span class="keyword">case</span> INTERFACE_TRANSACTION:&#123;			</span><br><span class="line">			reply.writeString(DESCRIPTOR);</span><br><span class="line">			<span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">case</span> TRANSACTION_addBook:&#123;</span><br><span class="line">			data.enforceInterface(DESCRIPTOR);</span><br><span class="line">			Book arg0;</span><br><span class="line">			<span class="keyword">if</span>(data.readInt()!=<span class="number">0</span>)&#123;</span><br><span class="line">				arg0 = Book.CREATOR.createFromParcel(data);</span><br><span class="line">			&#125;<span class="keyword">else</span> &#123;</span><br><span class="line">				arg0 = <span class="keyword">null</span>;</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">this</span>.addBook(arg0);</span><br><span class="line">			reply.writeNoException();</span><br><span class="line">			<span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">case</span> TRANSACTION_getBookList:&#123;</span><br><span class="line">			data.enforceInterface(DESCRIPTOR);</span><br><span class="line">			List&lt;Book&gt; result = <span class="keyword">this</span>.getBookList();</span><br><span class="line">			<span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> <span class="keyword">super</span>.onTransact(code, data, reply, flags);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">private</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">Proxy</span> <span class="keyword">implements</span> <span class="title">IBookManager</span></span>&#123;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">private</span> IBinder mRemoteBinder;</span><br><span class="line">		<span class="function"><span class="keyword">public</span> <span class="title">Proxy</span><span class="params">(IBinder binder)</span> </span>&#123;</span><br><span class="line">			mRemoteBinder = binder;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="meta">@Override</span></span><br><span class="line">		<span class="function"><span class="keyword">public</span> IBinder <span class="title">asBinder</span><span class="params">()</span> </span>&#123;</span><br><span class="line">			<span class="comment">// TODO Auto-generated method stub</span></span><br><span class="line">			<span class="keyword">return</span> mRemoteBinder;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">public</span> java.lang.<span class="function">String <span class="title">getInterfaceDescriptor</span><span class="params">()</span> </span>&#123;</span><br><span class="line">			<span class="keyword">return</span> DESCRIPTOR;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="meta">@Override</span></span><br><span class="line">		<span class="function"><span class="keyword">public</span> List&lt;Book&gt; <span class="title">getBookList</span><span class="params">()</span> <span class="keyword">throws</span> RemoteException </span>&#123;</span><br><span class="line">			Parcel data = Parcel.obtain();</span><br><span class="line">			Parcel replyParcel = Parcel.obtain();</span><br><span class="line"></span><br><span class="line">			List&lt;Book&gt; result;</span><br><span class="line">			<span class="keyword">try</span> &#123;</span><br><span class="line">				data.writeInterfaceToken(DESCRIPTOR);</span><br><span class="line">				mRemoteBinder.transact(TRANSACTION_getBookList, data, replyParcel, <span class="number">0</span>);<span class="comment">//挂起</span></span><br><span class="line">				replyParcel.readException();</span><br><span class="line">				result = replyParcel.createTypedArrayList(Book.CREATOR);</span><br><span class="line">			&#125;<span class="keyword">finally</span>&#123;</span><br><span class="line">				replyParcel.recycle();</span><br><span class="line">				data.recycle();</span><br><span class="line">			&#125;</span><br><span class="line">				<span class="keyword">return</span> result;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="meta">@Override</span></span><br><span class="line">		<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">addBook</span><span class="params">(Book book)</span> <span class="keyword">throws</span> RemoteException </span>&#123;</span><br><span class="line">			Parcel data = Parcel.obtain();</span><br><span class="line">			Parcel reply = Parcel.obtain();</span><br><span class="line">			<span class="keyword">try</span> &#123;</span><br><span class="line"></span><br><span class="line">				data.writeInterfaceToken(DESCRIPTOR);</span><br><span class="line">				<span class="keyword">if</span>(book!=<span class="keyword">null</span>)&#123;</span><br><span class="line">					data.writeInt(<span class="number">1</span>);</span><br><span class="line">					book.writeToParcel(data, <span class="number">1</span>); <span class="comment">//序列化属性</span></span><br><span class="line">				&#125;</span><br><span class="line">				<span class="keyword">else</span> &#123;</span><br><span class="line">					data.writeInt(<span class="number">0</span>);</span><br><span class="line">				&#125;</span><br><span class="line">				mRemoteBinder.transact(TRANSACTION_addBook, data, reply, <span class="number">0</span>);</span><br><span class="line">				reply.readException();</span><br><span class="line">			&#125;<span class="keyword">finally</span>&#123;</span><br><span class="line">				reply.recycle();</span><br><span class="line">				data.recycle();</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> IBinder <span class="title">asBinder</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="keyword">this</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> List&lt;Book&gt; <span class="title">getBookList</span><span class="params">()</span> <span class="keyword">throws</span> RemoteException </span>&#123;</span><br><span class="line">		<span class="comment">// TODO 服务器具体实现 如从数据库中获取</span></span><br><span class="line">		<span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">addBook</span><span class="params">(Book book)</span> <span class="keyword">throws</span> RemoteException </span>&#123;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h2 id="Binder如何维护连接"><a href="#Binder如何维护连接" class="headerlink" title="Binder如何维护连接"></a>Binder如何维护连接</h2><h3 id="Binder中linkToDeath-和-unLinkToDeath"><a href="#Binder中linkToDeath-和-unLinkToDeath" class="headerlink" title="Binder中linkToDeath 和 unLinkToDeath();"></a>Binder中linkToDeath 和 unLinkToDeath();</h3><p>看源码，Binder对象有两个重要方法，linkToDeath(),和unLinkToDeath();Binder运行在服务端异常终止，客户端远程调用就会失败，Binder中提供了这两个配对的方法，通过LinkToDeath()给Binder设置了一个死亡代理，当Binder死亡的时候，就会收到通知。就可以重新发送请求恢复连接，提供服务。同时unLinkToDeath()就是结束代理。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span><br><span class="line">   * Local implementation is a no-op.</span><br><span class="line">   */</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">linkToDeath</span><span class="params">(DeathRecipient recipient, <span class="keyword">int</span> flags)</span> </span>&#123;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/**</span><br><span class="line">   * Local implementation is a no-op.</span><br><span class="line">   */</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">unlinkToDeath</span><span class="params">(DeathRecipient recipient, <span class="keyword">int</span> flags)</span> </span>&#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
+<p>DeathRecipient<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span><br><span class="line">   * Interface for receiving a callback when the process hosting an IBinder</span><br><span class="line">   * has gone away.</span><br><span class="line">   *</span><br><span class="line">   * <span class="doctag">@see</span> #linkToDeath</span><br><span class="line">   */</span></span><br><span class="line">  <span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">DeathRecipient</span> </span>&#123;</span><br><span class="line">      <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">binderDied</span><span class="params">()</span></span>;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="如何设置死亡代理"><a href="#如何设置死亡代理" class="headerlink" title="如何设置死亡代理"></a>如何设置死亡代理</h3><p>根据源码可以看出，接口DeathRecipient只有一个方法binderDied()，设置代理LinkToDeath就要声明一个DeathRecipient接口，实现binderDied方法。<br>服务端<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">DeathRecipient mDeathRecipient  = <span class="keyword">new</span> IBinder.DeathRecipient()&#123;</span><br><span class="line"></span><br><span class="line">  <span class="meta">@Override</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">binderDied</span><span class="params">()</span></span>&#123;</span><br><span class="line">    <span class="keyword">if</span>(mBookManager == <span class="keyword">null</span>)&#123;</span><br><span class="line">      <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    mBookManager.asBinder().unlinkToDeath(mDeathRecipient,<span class="number">0</span>);</span><br><span class="line">    mBookManager == <span class="keyword">null</span>;</span><br><span class="line">    <span class="comment">//TODO 重新绑定远程服务</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>客户端<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">mService = IMessageBoxManager.Stub.asInterface(binder);</span><br><span class="line">binder.linkToDeath(mDeathRecipient,<span class="number">0</span>)</span><br></pre></td></tr></table></figure></p>
+<p>标志位0直接设置即可。isBinderAlive()可以直接判断Binder是否死亡。</p>
+<h2 id="笔者思考的问题："><a href="#笔者思考的问题：" class="headerlink" title="笔者思考的问题："></a>笔者思考的问题：</h2><blockquote>
+<p>当我们使用Binder机制通讯时，客户端代码和服务端代码怎么写？客户端如何调用服务端的方法。其调用过程需要注意些什么？</p>
+</blockquote>
+<p>客户端代码和服务端代码如下：</p>
+<h3 id="使用AIDL"><a href="#使用AIDL" class="headerlink" title="使用AIDL"></a>使用AIDL</h3><p>服务端</p>
+<ul>
+<li>1.创建一个AIDL文件，将暴露给客户端的接口(及所支持的服务方法)在这个文件中声明</li>
+<li>2.创建一个Service 并注册,指定process属性，代表不同进程。</li>
+<li>3 创建IBookManager.Stub对象，实现具体业务逻辑。通过onBind()将Binder返回给客户端。</li>
+</ul>
+<p>IBookManager.aidl<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.example.messengerdemo.aidl;</span><br><span class="line"><span class="keyword">import</span> com.example.messengerdemo.aidl.Book;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">interface</span> <span class="title">IBookManager</span> </span>&#123;</span><br><span class="line">	<span class="function">List&lt;Book&gt; <span class="title">getBookList</span><span class="params">()</span></span>;</span><br><span class="line">	<span class="function"><span class="keyword">void</span> <span class="title">addBook</span><span class="params">(in Book book)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>Book.aidl<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.example.messengerdemo.aidl;</span><br><span class="line"></span><br><span class="line">parcelable Book;</span><br></pre></td></tr></table></figure></p>
+<p>服务端实现：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">BookManagerService</span> <span class="keyword">extends</span> <span class="title">Service</span> </span>&#123;</span><br><span class="line">	<span class="keyword">private</span> <span class="keyword">static</span> CopyOnWriteArrayList&lt;Book&gt; mBooklistArrayList = <span class="keyword">new</span> CopyOnWriteArrayList&lt;Book&gt;();<span class="comment">//并发读写</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">private</span> <span class="keyword">static</span> Binder mBinder = <span class="keyword">new</span> IBookManager.Stub() &#123;</span><br><span class="line"></span><br><span class="line">		<span class="meta">@Override</span></span><br><span class="line">		<span class="function"><span class="keyword">public</span> List&lt;Book&gt; <span class="title">getBookList</span><span class="params">()</span> <span class="keyword">throws</span> RemoteException </span>&#123;</span><br><span class="line">			<span class="keyword">return</span> mBooklistArrayList;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="meta">@Override</span></span><br><span class="line">		<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">addBook</span><span class="params">(Book book)</span> <span class="keyword">throws</span> RemoteException </span>&#123;</span><br><span class="line">			mBooklistArrayList.add(book);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;;</span><br><span class="line"> 	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> IBinder <span class="title">onBind</span><span class="params">(Intent intent)</span> </span>&#123;</span><br><span class="line">		<span class="keyword">return</span> mBinder; <span class="comment">//通过onBind方法返回服务端的创建的Binder对象</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onCreate</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		<span class="keyword">super</span>.onCreate();</span><br><span class="line">		mBooklistArrayList.add(<span class="keyword">new</span> Book(<span class="number">1</span>, <span class="string">"1"</span>));</span><br><span class="line">		mBooklistArrayList.add(<span class="keyword">new</span> Book(<span class="number">2</span>, <span class="string">"2"</span>));</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>客户端实现<br>1.创建ServiceConnection，并绑定服务端。<br>2.绑定成功后，在ServiceConnection的onServiceConnected方法中调用aidl生成的IBookManager.Stub.asInterface方法返回其服务端返回的Binder对象<br>3.通过Binder对象发起远程过程调用，并阻塞等待返回。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">MainActivity</span> <span class="keyword">extends</span> <span class="title">Activity</span> </span>&#123;</span><br><span class="line">	<span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> String TAG = <span class="string">"BookMangerActivity"</span>;</span><br><span class="line">	<span class="comment">//通过ServiceConnection和服务端进行通信</span></span><br><span class="line">	<span class="keyword">private</span> ServiceConnection mConnection = <span class="keyword">new</span> ServiceConnection() &#123;</span><br><span class="line">		<span class="meta">@Override</span></span><br><span class="line">		<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onServiceDisconnected</span><span class="params">(ComponentName name)</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="meta">@Override</span></span><br><span class="line">		<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onServiceConnected</span><span class="params">(ComponentName name, IBinder service)</span> </span>&#123;</span><br><span class="line">			IBookManager bookManager = IBookManager.Stub.asInterface(service);<span class="comment">//客户端代理对象</span></span><br><span class="line">			<span class="keyword">try</span> &#123;</span><br><span class="line">				<span class="comment">//获取列表方法测试 应该开启子线程，不能在UI线程直接调用耗时任务。</span></span><br><span class="line">				List&lt;Book&gt; books = bookManager.getBookList();</span><br><span class="line">				Log.i(<span class="string">"BookMangerActivity"</span>, books.getClass()+<span class="string">""</span>);</span><br><span class="line">				getComponentName();</span><br><span class="line">				Log.i(<span class="string">"BookMangerActivity"</span>,<span class="string">"qurey books"</span>+books.toString());</span><br><span class="line">				<span class="comment">//添加方法测试</span></span><br><span class="line">				Book book = <span class="keyword">new</span> Book(<span class="number">3</span>, <span class="string">"test"</span>);</span><br><span class="line">				bookManager.addBook(book);</span><br><span class="line">				List&lt;Book&gt; newBooks = bookManager.getBookList();</span><br><span class="line">				Log.i(<span class="string">"BookMangerActivity"</span>,<span class="string">"qurey books"</span>+newBooks.toString());			</span><br><span class="line">			&#125; <span class="keyword">catch</span> (RemoteException e) &#123;</span><br><span class="line">				e.printStackTrace();</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;;</span><br><span class="line"></span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">onCreate</span><span class="params">(Bundle savedInstanceState)</span> </span>&#123;</span><br><span class="line">		<span class="keyword">super</span>.onCreate(savedInstanceState);</span><br><span class="line">		setContentView(R.layout.activity_main);</span><br><span class="line"></span><br><span class="line">		<span class="comment">//通过Intent确定绑定服务的两端</span></span><br><span class="line">		Intent intent = <span class="keyword">new</span> Intent(<span class="keyword">this</span>,BookManagerService.class);</span><br><span class="line">		bindService(intent, mConnection, Context.BIND_AUTO_CREATE);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">onDestroy</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		unbindService(mConnection);</span><br><span class="line">		<span class="keyword">super</span>.onDestroy();</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>以上就可以完成客户端调用服务端，并可以传递参数，和得到返回结果。</p>
+<h2 id="如何做到客户端和服务端的观察者模式"><a href="#如何做到客户端和服务端的观察者模式" class="headerlink" title="如何做到客户端和服务端的观察者模式"></a>如何做到客户端和服务端的观察者模式</h2><p>如何实现客户端向服务端注册(及关注)，同时服务端可以自动给客户端提供推送消息。同时客户端可以取消这种关注，类似于微信公众号的机制。<br>如果在同一进程中，实现就比较简单，只需要普通的监听接口。客户端需要实现服务端定义的监听接口IOnNewBookArrivedListener，注册的时候将实现的监听接口添加到服务端管理的监听集合中，推送消息时，服务端调用监听器的回调方法，将NewMessege作为参数传入,供客户端使用。<br>但是跨进程通信，首先不能使用普通接口，普通接口无法跨进程通信。而需要提供AIDL接口，结合AIDL使用的时候，就要考虑到监听器如何回调？当前运行的线程是否是UI线程或Binder线程池？而且还要考虑如何跨进程注册监听？及取消注册监听？<br>其主要步骤：<br>1.创建一个监听接口定义aidl文件：IOnNewBookArrivedListener.aidl<br>2.接口文件中定义onNewBookArrived的回调方法。<br>3.服务端调用回调方法。<br>IOnNewBookArrivedListener.aidl<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.example.messengerdemo.aidl;</span><br><span class="line"><span class="keyword">import</span> com.example.messengerdemo.aidl.Book;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">interface</span> <span class="title">IOnNewBookArrivedListener</span></span>&#123;</span><br><span class="line">	<span class="function"><span class="keyword">void</span> <span class="title">onNewBookArrived</span><span class="params">(in Book book)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>同时SDK也会为其生成一个Binder的实现，用于跨进程通信，生成的IOnNewBookArrivedListener.java参考 <strong>AIDL的构成</strong> 中IBookManger.java。</p>
+<blockquote>
+<p>客户端服务端的实现:</p>
+</blockquote>
+<h3 id="一种不恰当的实现方式，只能注册并收到通知，不能取消注册"><a href="#一种不恰当的实现方式，只能注册并收到通知，不能取消注册" class="headerlink" title="一种不恰当的实现方式，只能注册并收到通知，不能取消注册"></a>一种不恰当的实现方式，只能注册并收到通知，不能取消注册</h3><p>服务端<br>1.实现暴露给客户端接口的Stub内部类中的业务逻辑<br>2.通过onBind方法将Binder返回给客户端<br>3.开启线程，定时刷新调用已注册的回调监听对象。<br>4.实现Binder监听接口中注册监听，取消注册方法。<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">BookManagerService</span> <span class="keyword">extends</span> <span class="title">Service</span> </span>&#123;</span><br><span class="line">	<span class="keyword">private</span> <span class="keyword">static</span> CopyOnWriteArrayList&lt;Book&gt; mBooklistArrayList = <span class="keyword">new</span> CopyOnWriteArrayList&lt;Book&gt;();<span class="comment">//并发读写</span></span><br><span class="line">	<span class="keyword">private</span> <span class="keyword">static</span> CopyOnWriteArrayList&lt;IOnNewBookArrivedListener&gt; mListenerList = <span class="keyword">new</span> CopyOnWriteArrayList&lt;&gt;(); <span class="comment">//维护监听集合</span></span><br><span class="line">	<span class="keyword">private</span> AtomicBoolean mIsServiceDestoryed = <span class="keyword">new</span> AtomicBoolean(<span class="keyword">false</span>);</span><br><span class="line">  <span class="comment">//创建服务端Binder对象</span></span><br><span class="line">	<span class="keyword">private</span> <span class="keyword">static</span> Binder mBinder = <span class="keyword">new</span> IBookManager.Stub() &#123;</span><br><span class="line">    <span class="comment">//其运行在服务端Binder线程池中</span></span><br><span class="line">		<span class="meta">@Override</span></span><br><span class="line">		<span class="function"><span class="keyword">public</span> List&lt;Book&gt; <span class="title">getBookList</span><span class="params">()</span> <span class="keyword">throws</span> RemoteException </span>&#123;</span><br><span class="line">			<span class="keyword">return</span> mBooklistArrayList;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="meta">@Override</span></span><br><span class="line">		<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">addBook</span><span class="params">(Book book)</span> <span class="keyword">throws</span> RemoteException </span>&#123;</span><br><span class="line">			mBooklistArrayList.add(book);</span><br><span class="line">		&#125;</span><br><span class="line">    <span class="comment">//注册监听</span></span><br><span class="line">		<span class="meta">@Override</span></span><br><span class="line">		<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">registerListener</span><span class="params">(</span><br><span class="line">				IOnNewBookArrivedListener iOnIOnNewBookArrivedListener)</span></span><br><span class="line">				<span class="keyword">throws</span> RemoteException </span>&#123;</span><br><span class="line">			<span class="keyword">if</span>(!mListenerList.contains(iOnIOnNewBookArrivedListener))&#123;</span><br><span class="line">				mListenerList.add(iOnIOnNewBookArrivedListener);</span><br><span class="line">			&#125;<span class="keyword">else</span> &#123;</span><br><span class="line">				Log.i(<span class="string">"BookManagerService"</span>, <span class="string">"already register!"</span>);</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">    <span class="comment">//取消注册监听</span></span><br><span class="line">		<span class="meta">@Override</span></span><br><span class="line">		<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">unregisterListener</span><span class="params">(</span><br><span class="line">				IOnNewBookArrivedListener iOnNewBookArrivedListener)</span></span><br><span class="line">				<span class="keyword">throws</span> RemoteException </span>&#123;</span><br><span class="line">			<span class="keyword">if</span>(mListenerList.contains(iOnNewBookArrivedListener))&#123;</span><br><span class="line">				mListenerList.remove(iOnNewBookArrivedListener);</span><br><span class="line">			&#125;<span class="keyword">else</span> &#123;</span><br><span class="line">				Log.i(<span class="string">"BookManagerService"</span>, <span class="string">"not found , can not register!"</span>);</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;;</span><br><span class="line">  <span class="comment">//通过onBind方法返回Bind对象</span></span><br><span class="line"> 	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> IBinder <span class="title">onBind</span><span class="params">(Intent intent)</span> </span>&#123;</span><br><span class="line">		<span class="keyword">return</span> mBinder;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onCreate</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		<span class="keyword">super</span>.onCreate();</span><br><span class="line">		mBooklistArrayList.add(<span class="keyword">new</span> Book(<span class="number">1</span>, <span class="string">"1"</span>));</span><br><span class="line">		mBooklistArrayList.add(<span class="keyword">new</span> Book(<span class="number">2</span>, <span class="string">"2"</span>));</span><br><span class="line">		<span class="keyword">new</span> Thread(<span class="keyword">new</span> ServiceWorker()).start();<span class="comment">//开启推送线程</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">//这个方法调用的是客户端创建Binder监听器，运行在客户端的Binder线程池中。是一个耗时任务，所以这里不应该在服务端的UI线程中调用</span></span><br><span class="line">	<span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">onNewBookArrived</span><span class="params">(Book book)</span> <span class="keyword">throws</span> RemoteException</span>&#123;</span><br><span class="line">		mBooklistArrayList.add(book);<span class="number">1</span></span><br><span class="line">		<span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; mListenerList.size(); i++) &#123;</span><br><span class="line">			Log.i(<span class="string">"BookManagerService"</span>, <span class="string">"监听器回调"</span>);</span><br><span class="line">			mListenerList.get(i).onNewBookArrived(book);<span class="comment">//传入NewMessege参数回调</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">private</span> <span class="class"><span class="keyword">class</span> <span class="title">ServiceWorker</span> <span class="keyword">implements</span> <span class="title">Runnable</span></span>&#123;</span><br><span class="line">		<span class="meta">@Override</span></span><br><span class="line">		<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">			<span class="keyword">while</span>(!mIsServiceDestoryed.get())&#123;</span><br><span class="line">				<span class="keyword">try</span> &#123;</span><br><span class="line">					Thread.sleep(<span class="number">5000</span>);</span><br><span class="line">				&#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">int</span> bookId = mBooklistArrayList.size()+<span class="number">1</span>;</span><br><span class="line">			Book book = <span class="keyword">new</span> Book(bookId, <span class="string">"new Book#"</span>+bookId);</span><br><span class="line">			<span class="keyword">try</span> &#123;</span><br><span class="line">				onNewBookArrived(book); <span class="comment">//调用回调监听</span></span><br><span class="line">			&#125; <span class="keyword">catch</span> (RemoteException e) &#123;</span><br><span class="line">				e.printStackTrace();</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>1.实现监听回调接口Binder,获取数据后，可向UI线程发送消息。<br>2.绑定服务，创建ServiceConnection，并实现onServiceConnected方法调用asInterface获取服务端返回的binder对象。<br>3.通过Binder对象发起远程调用。<br>4.注册回调监听。<br>5.销毁时取消回调监听。<br>客户端：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">MainActivity</span> <span class="keyword">extends</span> <span class="title">Activity</span> </span>&#123;</span><br><span class="line">	<span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> String TAG = <span class="string">"BookMangerActivity"</span>;</span><br><span class="line">	<span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> MESSAGE_NEW_BOOK_ARRIVED = <span class="number">1</span>;</span><br><span class="line">	<span class="keyword">private</span> IBookManager mRemoteBookManager;</span><br><span class="line">	<span class="keyword">private</span> Handler handler = <span class="keyword">new</span> Handler()&#123;</span><br><span class="line"></span><br><span class="line">		<span class="meta">@Override</span></span><br><span class="line">		<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">handleMessage</span><span class="params">(Message msg)</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">			<span class="keyword">switch</span> (msg.what) &#123;</span><br><span class="line">			<span class="keyword">case</span> MESSAGE_NEW_BOOK_ARRIVED:</span><br><span class="line">				Log.i(TAG, <span class="string">"received new Book"</span>+msg.obj);</span><br><span class="line">				<span class="keyword">break</span>;</span><br><span class="line">			<span class="keyword">default</span>:</span><br><span class="line">				<span class="keyword">break</span>;</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;;</span><br><span class="line">	<span class="comment">//通过ServiceConnection和服务端进行通信</span></span><br><span class="line">	<span class="keyword">private</span> ServiceConnection mConnection = <span class="keyword">new</span> ServiceConnection() &#123;</span><br><span class="line">    <span class="comment">//以下两个方法运行在UI线程，调用proxy对象的业务方法发起远程过程调用后会被挂起，耗时操作，所以这里可能会导致ANR</span></span><br><span class="line">		<span class="meta">@Override</span></span><br><span class="line">		<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onServiceDisconnected</span><span class="params">(ComponentName name)</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="meta">@Override</span></span><br><span class="line">		<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onServiceConnected</span><span class="params">(ComponentName name, IBinder service)</span> </span>&#123;</span><br><span class="line">		    mRemoteBookManager = IBookManager.Stub.asInterface(service);<span class="comment">//绑定成功后将服务返回的Binder转换成AIDL接口，实际返回proxy对象，非Binder</span></span><br><span class="line">			<span class="keyword">try</span> &#123;</span><br><span class="line">				<span class="comment">//获取列表方法测试</span></span><br><span class="line">				List&lt;Book&gt; books = mRemoteBookManager.getBookList();</span><br><span class="line">				Log.i(<span class="string">"BookMangerActivity"</span>, books.getClass()+<span class="string">""</span>);</span><br><span class="line">				getComponentName();</span><br><span class="line">				Log.i(<span class="string">"BookMangerActivity"</span>,<span class="string">"qurey books"</span>+books.toString());</span><br><span class="line"></span><br><span class="line">				<span class="comment">//添加方法测试</span></span><br><span class="line">				Book book = <span class="keyword">new</span> Book(<span class="number">3</span>, <span class="string">"test"</span>);</span><br><span class="line">				mRemoteBookManager.addBook(book);</span><br><span class="line">				List&lt;Book&gt; newBooks = mRemoteBookManager.getBookList();</span><br><span class="line">				Log.i(<span class="string">"BookMangerActivity"</span>,<span class="string">"qurey books"</span>+newBooks.toString());		</span><br><span class="line"></span><br><span class="line">				mRemoteBookManager.registerListener(listener);<span class="comment">//注册监听器</span></span><br><span class="line">			&#125; <span class="keyword">catch</span> (RemoteException e) &#123;</span><br><span class="line">				<span class="comment">// TODO Auto-generated catch block</span></span><br><span class="line">				e.printStackTrace();</span><br><span class="line">			&#125;				</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;;</span><br><span class="line"></span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">onCreate</span><span class="params">(Bundle savedInstanceState)</span> </span>&#123;</span><br><span class="line">		<span class="keyword">super</span>.onCreate(savedInstanceState);</span><br><span class="line">		setContentView(R.layout.activity_main);</span><br><span class="line">		<span class="comment">//通过Intent确定绑定服务的两端</span></span><br><span class="line">		Intent intent = <span class="keyword">new</span> Intent(<span class="keyword">this</span>,BookManagerService.class);</span><br><span class="line">		bindService(intent, mConnection, Context.BIND_AUTO_CREATE);<span class="comment">//绑定服务，</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">//在客户端创建一个Binder对象，用于服务端的调用，Binder总是出现于被调用的一端。此类运行在客户端的Binder线程池中，也就是服务端调用的时候，是运行在客户端的线程池中</span></span><br><span class="line">	<span class="keyword">private</span> IOnNewBookArrivedListener listener = <span class="keyword">new</span> IOnNewBookArrivedListener.Stub() &#123;</span><br><span class="line">		<span class="comment">//Binder线程池中需要并发处理，需要向UI线程发消息。</span></span><br><span class="line">		<span class="meta">@Override</span></span><br><span class="line">		<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onNewBookArrived</span><span class="params">(Book book)</span> <span class="keyword">throws</span> RemoteException </span>&#123;</span><br><span class="line">			handler.obtainMessage(MESSAGE_NEW_BOOK_ARRIVED, book).sendToTarget();</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;;</span><br><span class="line"></span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">onDestroy</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		<span class="keyword">if</span>(mRemoteBookManager!=<span class="keyword">null</span> &amp;&amp; mRemoteBookManager.asBinder().isBinderAlive())&#123;</span><br><span class="line">			<span class="keyword">try</span> &#123;</span><br><span class="line">          <span class="comment">//mRemoteBookManger 是在UI线程中获取的proxy对象，其传入的参数Listener是不能直接跨进程的。listener在客户端这里是一个对象，如何保证在服务端也是同一个对象呢？</span></span><br><span class="line">          <span class="comment">//如果不能保证在服务端是同一个对象，就不能完成取消注册的功能。</span></span><br><span class="line">          mRemoteBookManager.unregisterListener(listener);</span><br><span class="line">			&#125; <span class="keyword">catch</span> (RemoteException e) &#123;</span><br><span class="line">				e.printStackTrace();</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		unbindService(mConnection);</span><br><span class="line">		<span class="keyword">super</span>.onDestroy();</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>总结：不恰当的方式有以下几点：</p>
+<ul>
+<li><p>1.从UI线程不能调用耗时任务，防止导致ANR的角度来说：</p>
+<ul>
+<li>客户端ServiceConnection 中的onServiceConnected 和 onServiceDisconnected 方法是运行在UI线程，不能调用asInterface返回的IBookManger接口对象(proxy对象)的addBook和getBookList方法，proxy对象要发起远程请求transact()，这是耗时的。</li>
+<li>服务端onNewBookArrived方法调用的是客户端创建的Binder监听器IOnNewBookArrivedListener对象的onNewBookArrived方法，运行在客户端的Binder线程池中，耗时操作。所以服务端的onNewBookArrived方法不能在UI线程调用。</li>
+</ul>
+</li>
+<li><p>2.从对象不能直接跨进程传输的角度来说：</p>
+<ul>
+<li>客户端在onServiceConnected中调用proxy对象的registerListener方法注册监听器时，传入的listener参数和在onDestroy方法中调用的unregisterListener方法传入的listener参数对于客户端来说是一个对象，但是对于服务端来说是不同的对象，对于服务端来说对象跨进程传输的反序列化后的新的对象。所以在unregisterListener时候并不能找到已经注册的对象，而打印not found , listener unregister，不能完成取消注册的功能。</li>
+</ul>
+</li>
+<li><p>3.异步任务</p>
+<ul>
+<li>服务端的方法本来就运行在线程池中可以执行大量的耗时操作，所以不要在服务端的线程池里另外开启线程执行异步任务。</li>
+</ul>
+</li>
+</ul>
+<p>所以之前的实现很多地方都是不恰当的。</p>
+<h3 id="正确实现："><a href="#正确实现：" class="headerlink" title="正确实现："></a>正确实现：</h3><p>如何解决不恰当方式中的第2点?<br>对于服务端来说，registerListener传入的listener在服务端是不同的对象，构造Listener的时候是通过客户端IBookManger.Stub()生成的Binder对象。这个Binder对于服务器来说是同一个Binder,why?<br>取消注册需要用到RemoteCallbackList&lt;&gt;，它是一个泛型，专门用于删除跨进程的listner接口。<br>服务端改进：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">...</span><br><span class="line"><span class="keyword">private</span> RemoteCallbackList&lt;IOnNewBookArrivedListener&gt; mListenerList = <span class="keyword">new</span> RemoteCallbackList&lt;IOnNewBookArrivedListener&gt;();</span><br><span class="line"><span class="keyword">private</span> AtomicBoolean mIsServiceDestoryed = <span class="keyword">new</span> AtomicBoolean(<span class="keyword">false</span>);</span><br><span class="line"><span class="keyword">private</span> Binder mBinder = <span class="keyword">new</span> IBookManager.Stub() &#123;</span><br><span class="line">  ...</span><br><span class="line">  <span class="meta">@Override</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">registerListener</span><span class="params">(</span><br><span class="line">      IOnNewBookArrivedListener iOnIOnNewBookArrivedListener)</span></span><br><span class="line">      <span class="keyword">throws</span> RemoteException </span>&#123;</span><br><span class="line">    mListenerList.register(iOnIOnNewBookArrivedListener);</span><br><span class="line"></span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="meta">@Override</span></span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">unregisterListener</span><span class="params">(</span><br><span class="line">      IOnNewBookArrivedListener iOnNewBookArrivedListener)</span></span><br><span class="line">      <span class="keyword">throws</span> RemoteException </span>&#123;</span><br><span class="line">    mListenerList.unregister(iOnNewBookArrivedListener);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;;</span><br><span class="line">...</span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">onNewBookArrived</span><span class="params">(Book book)</span> <span class="keyword">throws</span> RemoteException </span>&#123;</span><br><span class="line">  mBooklistArrayList.add(book);</span><br><span class="line">  <span class="keyword">int</span> N = mListenerList.beginBroadcast();</span><br><span class="line">  <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; N; i++) &#123;</span><br><span class="line"></span><br><span class="line">    IOnNewBookArrivedListener listener = mListenerList</span><br><span class="line">        .getBroadcastItem(i);</span><br><span class="line">    <span class="keyword">if</span> (listener != <span class="keyword">null</span>) &#123;</span><br><span class="line">      listener.onNewBookArrived(book);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  mListenerList.finishBroadcast();<span class="comment">//必须和begin配对使用</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>为了程序的健壮性，在客户端中我们需要在Binder意外死亡的时候做处理，除了之前设置DeathRecipient监听，重连服务以外还有另外一种方式，在onServiceDisConnected中重连远程服务，区别如下：</p>
+<ul>
+<li>onServiceDisConnected在UI线程中回调</li>
+<li>binderDied在客户端Binder线程中回调，不可以访问UI线程。</li>
+</ul>
+<h2 id="服务权限验证的几种方式"><a href="#服务权限验证的几种方式" class="headerlink" title="服务权限验证的几种方式"></a>服务权限验证的几种方式</h2><h3 id="自定义权限及使用"><a href="#自定义权限及使用" class="headerlink" title="自定义权限及使用"></a>自定义权限及使用</h3><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">permission</span> <span class="attr">android:name</span>=<span class="string">"com.example.aidldemo.permission.ACCESS_BOOK_SERVICE"</span></span><br><span class="line">        <span class="attr">android:protectionLevel</span>=<span class="string">"normal"</span></span><br><span class="line">        <span class="attr">android:label</span>=<span class="string">"@string/app_name"</span>        /&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">uses-permission</span>   </span><br><span class="line">       <span class="attr">android:name</span>=<span class="string">"com.example.aidldemo.permission.ACCESS_BOOK_SERVICE"</span>  /&gt;</span></span><br></pre></td></tr></table></figure>
+<p>声明的含义如下:<br>android:label：权限名字，显示给用户的，值可是一个 string 数据，例如这里的“自定义权限”。<br>android:description：比 label 更长的对权限的描述。值是通过 resource 文件中获取的，不能直接写 string 值，例如这里的”@string/test”。<br>android:name：权限名字，如果其他 app 引用该权限需要填写这个名字。<br>android:protectionLevel：权限级别，分为 4 个级别：</p>
+<ul>
+<li>normal：低风险权限，在安装的时候，系统会自动授予权限给 application。</li>
+<li>dangerous：高风险权限，系统不会自动授予权限给 app，在用到的时候，会给用户提示。</li>
+<li>signature：签名权限，在其他 app 引用声明的权限的时候，需要保证两个 app 的签名一致。这样系统就会自动授予权限给第三方 app，而不提示给用户。</li>
+<li>signatureOrSystem：这个权限是引用该权限的 app 需要有和系统同样的签名才能授予的权限，一般不推荐</li>
+</ul>
+<h3 id="onBind中验证"><a href="#onBind中验证" class="headerlink" title="onBind中验证"></a>onBind中验证</h3><p>在onBind中验证，验证不通过就返回null，从而不返回服务端的Binder对象。 如下采用permission方式验证<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> IBinder <span class="title">onBind</span><span class="params">(Intent intent)</span> </span>&#123;</span><br><span class="line">		<span class="comment">//权限验证</span></span><br><span class="line">		<span class="keyword">int</span> check = checkCallingOrSelfPermission(<span class="string">"com.example.aidldemo.permission.ACCESS_BOOK_SERVICE"</span>);</span><br><span class="line">		<span class="keyword">if</span>(check==PackageManager.PERMISSION_DENIED)&#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> mBinder;</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="onTransact-中验证"><a href="#onTransact-中验证" class="headerlink" title="onTransact()中验证"></a>onTransact()中验证</h3><p>在服务端的onTransact中验证，验证不通过就返回false,这样服务端不会终止AIDL中的方法而达到保护服务端的效果，例如用UID和PID来做验证。<br>UID PID:<br>PID：为Process Identifier<br>PID就是各进程的身份标识,程序一运行系统就会自动分配给进程一个独一无二的PID。进程中止后PID被系统回收，可能会被继续分配给新运行的程序，但是在android系统中一般不会把已经kill掉的进程ID重新分配给新的进程，新产生进程的进程号，一般比产生之前所有的进程号都要大。<br>UID：一般理解为User Identifier<br>UID在linux中就是用户的ID，表明时哪个用户运行了这个程序，主要用于权限的管理。而在android 中又有所不同，因为android为单用户系统，这时UID 便被赋予了新的使命，数据共享，为了实现数据共享，android为每个应用几乎都分配了不同的UID，不像传统的linux，每个用户相同就为之分配相同的UID。（当然这也就表明了一个问题，android只能时单用户系统，在设计之初就被他们的工程师给阉割了多用户），使之成了数据共享的工具。<br>同时验证permission和包名方式：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">onTransact</span><span class="params">(<span class="keyword">int</span> code, Parcel data, Parcel reply, <span class="keyword">int</span> flags)</span></span><br><span class="line">      <span class="keyword">throws</span> RemoteException </span>&#123;</span><br><span class="line">    <span class="comment">//首先验证远程调用服务的方法中必须含有自定义权限</span></span><br><span class="line">    <span class="keyword">int</span> check = checkCallingOrSelfPermission(<span class="string">"com.example.aidldemo.permission.ACCESS_BOOK_SERVICE"</span>);</span><br><span class="line">    <span class="keyword">if</span>(check == PackageManager.PERMISSION_DENIED)&#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    String packageName = <span class="keyword">null</span>;</span><br><span class="line">    String [] packages =  getPackageManager().getPackagesForUid(getCallingUid());</span><br><span class="line">    <span class="keyword">if</span>(packages!=<span class="keyword">null</span> &amp;&amp; packages.length&gt;<span class="number">0</span>)&#123;</span><br><span class="line">      packageName = packages[<span class="number">0</span>];</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//其次 应用的报名必须是com.example.aidldemo开头</span></span><br><span class="line">    <span class="keyword">if</span>(!packageName.startsWith(<span class="string">"com.example.aidldemo"</span>))&#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">super</span>.onTransact(code, data, reply, flags);</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="Service-指定android-permission属性"><a href="#Service-指定android-permission属性" class="headerlink" title="Service 指定android permission属性"></a>Service 指定android permission属性</h3><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">service</span></span><br><span class="line">  <span class="attr">android:name</span>=<span class="string">"com.example.aidldemo.BookManagerService"</span></span><br><span class="line">    <span class="attr">android:process</span>=<span class="string">":remote"</span></span><br><span class="line">    <span class="attr">android:permission</span>=<span class="string">"com.example.aidldemo.permission.ACCESS_BOOK_SERVICE"</span></span><br><span class="line">&gt;</span><span class="tag">&lt;/<span class="name">service</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<h2 id="Binder连接池优化方案"><a href="#Binder连接池优化方案" class="headerlink" title="Binder连接池优化方案"></a>Binder连接池优化方案</h2><p>一个应用，功能模块众多，假设其中两个分别为加密解密服务和计算服务，如果为每一个模块写一个Service，并创建一个对应的AIDL，这样就会就比较浪费资源，一个Service的开销不小，十几个，或者几十个Service的开销，移动操作系系统也许不能负担，所以引入了连接池的概念。</p>
+<p>解决方案：会将多个AIDL写入一个Service中。Service提供一个匹配各种不同服务的Binder接口，即连接池，通过连接池查询各种业务相应模块的binder，再通过Binder将请求统一发到一个远程Service中执行。</p>
+<p>1.创建相应模块的aidl接口文件并实现其中业务逻辑方法。<br>服务端：<br>ICompute.aidl<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.example.binderpooldemo.aidl;</span><br><span class="line"><span class="class"><span class="keyword">interface</span> <span class="title">ICompute</span></span>&#123;</span><br><span class="line">	<span class="function"><span class="keyword">int</span> <span class="title">add</span><span class="params">(<span class="keyword">int</span> a,<span class="keyword">int</span> b)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>ISecurityCenter.aidl<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.example.binderpooldemo.aidl;</span><br><span class="line"><span class="class"><span class="keyword">interface</span> <span class="title">ISecurityCenter</span></span>&#123;</span><br><span class="line">	<span class="function">String <span class="title">encrypt</span><span class="params">(String content)</span></span>;</span><br><span class="line">	<span class="function">String <span class="title">decrypt</span><span class="params">(String password)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>实现：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SecurityCenterImpl</span> <span class="keyword">extends</span> <span class="title">ISecurityCenter</span>.<span class="title">Stub</span></span>&#123;</span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> String <span class="title">encrypt</span><span class="params">(String content)</span> <span class="keyword">throws</span> RemoteException </span>&#123;</span><br><span class="line">		<span class="comment">// TODO Auto-generated method stub</span></span><br><span class="line">		<span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> String <span class="title">decrypt</span><span class="params">(String password)</span> <span class="keyword">throws</span> RemoteException </span>&#123;</span><br><span class="line">		<span class="comment">// TODO Auto-generated method stub</span></span><br><span class="line">		<span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ComputeImpl</span> <span class="keyword">extends</span> <span class="title">ICompute</span>.<span class="title">Stub</span> </span>&#123;</span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">add</span><span class="params">(<span class="keyword">int</span> a, <span class="keyword">int</span> b)</span> <span class="keyword">throws</span> RemoteException </span>&#123;</span><br><span class="line">		<span class="comment">// TODO Auto-generated method stub</span></span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>2.创建连接池接口文件，提供queryBinder方法；IBinderPool.aidl<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.example.binderpooldemo.aidl;</span><br><span class="line"><span class="class"><span class="keyword">interface</span> <span class="title">IBinderPool</span></span>&#123;</span><br><span class="line">	<span class="function">IBinder <span class="title">queryBinder</span><span class="params">(<span class="keyword">int</span> binderCode)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>3.创建一个连接池BinderPool.java，在内部实现IBinderPool.aidl接口：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">BinderPool</span> </span>&#123;</span><br><span class="line">	<span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> String TAG = <span class="string">"BinderPool"</span>;</span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> BINDER_NOTE = -<span class="number">1</span>;</span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> BINDER_COMPUTE = <span class="number">0</span>;</span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> BINDER_SECURITY_CENTER = <span class="number">1</span>;</span><br><span class="line">	<span class="keyword">private</span> Context mContext;</span><br><span class="line">	<span class="keyword">private</span> IBinderPool mBinderPool;</span><br><span class="line">	<span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">volatile</span> BinderPool sIntance;</span><br><span class="line">	<span class="keyword">private</span> CountDownLatch mConnectBinderPoolCountDownLatch;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="keyword">private</span> <span class="title">BinderPool</span><span class="params">(Context context)</span> </span>&#123;</span><br><span class="line">		mContext = context;</span><br><span class="line">		connectBinderPoolService();</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">static</span> BinderPool <span class="title">getInstance</span><span class="params">(Context context)</span></span>&#123;</span><br><span class="line">		<span class="keyword">if</span>(sIntance==<span class="keyword">null</span>)&#123;</span><br><span class="line">			<span class="keyword">synchronized</span> (BinderPool.class) &#123;</span><br><span class="line">				<span class="keyword">if</span>(sIntance==<span class="keyword">null</span>)&#123;</span><br><span class="line">					sIntance = <span class="keyword">new</span> BinderPool(context);</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> sIntance;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="keyword">public</span> IBinder <span class="title">queryBinder</span><span class="params">(<span class="keyword">int</span> binderCode)</span> </span>&#123;</span><br><span class="line">		IBinder iBinder = <span class="keyword">null</span>;</span><br><span class="line">		<span class="keyword">if</span> (mBinderPool != <span class="keyword">null</span>) &#123;</span><br><span class="line">			<span class="keyword">try</span> &#123;</span><br><span class="line">				iBinder = mBinderPool.queryBinder(binderCode);</span><br><span class="line">			&#125; <span class="keyword">catch</span> (RemoteException e) &#123;</span><br><span class="line">				<span class="comment">// TODO Auto-generated catch block</span></span><br><span class="line">				e.printStackTrace();</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> iBinder;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="keyword">private</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title">connectBinderPoolService</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		mConnectBinderPoolCountDownLatch = <span class="keyword">new</span> CountDownLatch(<span class="number">1</span>);</span><br><span class="line">		Intent serviceIntent = <span class="keyword">new</span> Intent(mContext, BinderPoolService.class);</span><br><span class="line">		mContext.bindService(serviceIntent, connection,</span><br><span class="line">				Context.BIND_AUTO_CREATE);</span><br><span class="line">		<span class="keyword">try</span> &#123;</span><br><span class="line">			mConnectBinderPoolCountDownLatch.wait();</span><br><span class="line">		&#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">			e.printStackTrace();</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">private</span> ServiceConnection connection = <span class="keyword">new</span> ServiceConnection() &#123;</span><br><span class="line">		<span class="meta">@Override</span></span><br><span class="line">		<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onServiceDisconnected</span><span class="params">(ComponentName name)</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="meta">@Override</span></span><br><span class="line">		<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onServiceConnected</span><span class="params">(ComponentName name, IBinder service)</span> </span>&#123;</span><br><span class="line">			mBinderPool = IBinderPool.Stub.asInterface(service);</span><br><span class="line">			<span class="keyword">try</span> &#123;</span><br><span class="line">				mBinderPool.asBinder().linkToDeath(mBinderPoolDeathRecipient,<span class="number">0</span>);</span><br><span class="line">			&#125; <span class="keyword">catch</span> (RemoteException e) &#123;</span><br><span class="line">				e.printStackTrace();</span><br><span class="line">			&#125;</span><br><span class="line">			mConnectBinderPoolCountDownLatch.countDown();</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">private</span> IBinder.DeathRecipient mBinderPoolDeathRecipient = <span class="keyword">new</span> IBinder.DeathRecipient() &#123;</span><br><span class="line">		<span class="meta">@Override</span></span><br><span class="line">		<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">binderDied</span><span class="params">()</span> </span>&#123;</span><br><span class="line">			mBinderPool.asBinder().unlinkToDeath(mBinderPoolDeathRecipient, <span class="number">0</span>);</span><br><span class="line">			mBinderPool = <span class="keyword">null</span>;</span><br><span class="line">			connectBinderPoolService();</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;;</span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">BinderPoorImpl</span> <span class="keyword">extends</span> <span class="title">IBinderPool</span>.<span class="title">Stub</span> </span>&#123;</span><br><span class="line">		<span class="meta">@Override</span></span><br><span class="line">		<span class="function"><span class="keyword">public</span> IBinder <span class="title">queryBinder</span><span class="params">(<span class="keyword">int</span> binderCode)</span> <span class="keyword">throws</span> RemoteException </span>&#123;</span><br><span class="line">			IBinder binder = <span class="keyword">null</span>;</span><br><span class="line">			<span class="keyword">switch</span> (binderCode) &#123;</span><br><span class="line">			<span class="keyword">case</span> BINDER_SECURITY_CENTER:</span><br><span class="line">				binder = <span class="keyword">new</span> SecurityCenterImpl();</span><br><span class="line">				<span class="keyword">break</span>;</span><br><span class="line">			<span class="keyword">case</span> BINDER_COMPUTE:</span><br><span class="line">				binder = <span class="keyword">new</span> ComputeImpl();</span><br><span class="line">				<span class="keyword">break</span>;</span><br><span class="line">			<span class="keyword">default</span>:</span><br><span class="line">				<span class="keyword">break</span>;</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">return</span> binder;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>连接池通过ServiceConnection获取IBinderPool接口的mBinderPoor对象，并提供绑定远程服务，设置死亡代理，并提供重连机制。客户端通过其mBinderPoor中实现的queryBinder方法返回跟业务相关的Binder进行各自的操作。<br>服务端：<br>BinderPoolService.java服务类实现：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">BinderPoolService</span> <span class="keyword">extends</span> <span class="title">Service</span> </span>&#123;</span><br><span class="line">	<span class="keyword">private</span> Binder mBinderPool = <span class="keyword">new</span> BinderPool.BinderPoorImpl();</span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> IBinder <span class="title">onBind</span><span class="params">(Intent intent)</span> </span>&#123;</span><br><span class="line">		<span class="keyword">return</span> mBinderPool;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onCreate</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		<span class="keyword">super</span>.onCreate();</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>服务类中实例化连接池接口对象，并将Binder通过onBind方法返回，供客户端绑定。<br>客户端：<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">MainActivity</span> <span class="keyword">extends</span> <span class="title">Activity</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">private</span> ISecurityCenter mSecurityCenter;</span><br><span class="line">	<span class="keyword">private</span> ICompute mCompute;</span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">onCreate</span><span class="params">(Bundle savedInstanceState)</span> </span>&#123;</span><br><span class="line">		<span class="keyword">super</span>.onCreate(savedInstanceState);</span><br><span class="line">		setContentView(R.layout.activity_main);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">//这个方法需要在线程中执行</span></span><br><span class="line">	<span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">doWork</span><span class="params">()</span></span>&#123;</span><br><span class="line">		BinderPool binderPool = BinderPool.getInstance(MainActivity.<span class="keyword">this</span>);</span><br><span class="line">		IBinder securityBinder = binderPool.queryBinder(BinderPool.BINDER_SECURITY_CENTER);</span><br><span class="line">		mSecurityCenter = (ISecurityCenter)SecurityCenterImpl.asInterface(securityBinder);</span><br><span class="line"></span><br><span class="line">		IBinder computeBinder = binderPool.queryBinder(BinderPool.BINDER_COMPUTE);</span><br><span class="line">		mCompute = (ICompute)ComputeImpl.asInterface(computeBinder);</span><br><span class="line">		<span class="keyword">try</span> &#123;</span><br><span class="line">			mSecurityCenter.encrypt(<span class="string">"abc"</span>);</span><br><span class="line">		&#125; <span class="keyword">catch</span> (RemoteException e) &#123;</span><br><span class="line">			<span class="comment">// TODO Auto-generated catch block</span></span><br><span class="line">			e.printStackTrace();</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>客户端调用远程服务doWork()不能在主线程中调用，BinderPool初始化的时候需要绑定远程服务，包括后面queryBinder方法都是调用远程服务的queryBinder方法，运行在服务的Binder线程池中。同时connectBinderPoolService是同步的方法。<br>如果业务扩展，添加新的Binder服务，则只需创建aidl接口文件，在IBinderPool的queryBinder中添加新的binder返回就行了。不需要改动IBinderPoolService。</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/05/16/破解startUML2/" rel="next" title="破解startUML2">
+                <i class="fa fa-chevron-left"></i> 破解startUML2
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/05/28/IPC之Messenger的使用/" rel="prev" title="IPC之Messenger的使用">
+                IPC之Messenger的使用 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2016/05/21/Binder/"
+           data-title="IPC之Binder原理初探" data-url="http://coffee1993.github.io/2016/05/21/Binder/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.jpg"
+               alt="voidzhang" />
+          <p class="site-author-name" itemprop="name">voidzhang</p>
+          <p class="site-description motion-element" itemprop="description">看到一片净土，让我远离死亡</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">25</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+          
+          
+            <div class="site-state-item site-state-categories">
+              <a href="/categories">
+                <span class="site-state-item-count">9</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">4</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/coffee1993" target="_blank">
+                  
+                    <i class="fa fa-github"></i> GitHub
+                  
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://blog.csdn.net/u010908743" target="_blank">
+                  
+                    <i class="fa fa-globe"></i> CSDN
+                  
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/u/2095698807?refer_flag=1005050010_&is_hot=1" target="_blank">
+                  
+                    <i class="fa fa-weibo"></i> Weibo
+                  
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        <div class="links-of-author motion-element">
+          
+            <p class="site-author-name">友情链接</p>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.ldc4.cn/" target="_blank">Ldc4_赵青松</a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://ikee.xin/" target="_blank">kee_李鑫</a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.king-liu.net/" target="_blank">king_刘凯</a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://ios.dog" target="_blank">boolean93_李竞熠</a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://notdeep.github.io/" target="_blank">果姐姐</a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://jucsinyu.com/" target="_blank">jucsinyu</a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://harry.wiki/" target="_blank">怡妹子</a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.cnblogs.com/duanv/" target="_blank">蔚蓝行</a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://blog.csdn.net/karchar" target="_blank">翔帅</a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/zmywly8866/Worth-Reading-the-Android-technical-articles" target="_blank">zmywly8866</a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://lizhuolun.com/" target="_blank">带你逛逛</a>
+              </span>
+            
+          
+        </div>
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc-indicator-top post-toc-indicator">
+            <i class="fa fa-angle-double-up"></i>
+          </div>
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Binder是什么"><span class="nav-number">1.</span> <span class="nav-text">Binder是什么</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Binder和AIDL关系，为何要分析AIDL"><span class="nav-number">2.</span> <span class="nav-text">Binder和AIDL关系，为何要分析AIDL</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#AIDL-Android-Interface-definition-language"><span class="nav-number">3.</span> <span class="nav-text">AIDL(Android Interface definition language)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#何为AIDL"><span class="nav-number">3.1.</span> <span class="nav-text">何为AIDL</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#AIDL构成"><span class="nav-number">3.2.</span> <span class="nav-text">AIDL构成</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Binder如何维护连接"><span class="nav-number">4.</span> <span class="nav-text">Binder如何维护连接</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Binder中linkToDeath-和-unLinkToDeath"><span class="nav-number">4.1.</span> <span class="nav-text">Binder中linkToDeath 和 unLinkToDeath();</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#如何设置死亡代理"><span class="nav-number">4.2.</span> <span class="nav-text">如何设置死亡代理</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#笔者思考的问题："><span class="nav-number">5.</span> <span class="nav-text">笔者思考的问题：</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#使用AIDL"><span class="nav-number">5.1.</span> <span class="nav-text">使用AIDL</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#如何做到客户端和服务端的观察者模式"><span class="nav-number">6.</span> <span class="nav-text">如何做到客户端和服务端的观察者模式</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#一种不恰当的实现方式，只能注册并收到通知，不能取消注册"><span class="nav-number">6.1.</span> <span class="nav-text">一种不恰当的实现方式，只能注册并收到通知，不能取消注册</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#正确实现："><span class="nav-number">6.2.</span> <span class="nav-text">正确实现：</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#服务权限验证的几种方式"><span class="nav-number">7.</span> <span class="nav-text">服务权限验证的几种方式</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#自定义权限及使用"><span class="nav-number">7.1.</span> <span class="nav-text">自定义权限及使用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#onBind中验证"><span class="nav-number">7.2.</span> <span class="nav-text">onBind中验证</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#onTransact-中验证"><span class="nav-number">7.3.</span> <span class="nav-text">onTransact()中验证</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Service-指定android-permission属性"><span class="nav-number">7.4.</span> <span class="nav-text">Service 指定android permission属性</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Binder连接池优化方案"><span class="nav-number">8.</span> <span class="nav-text">Binder连接池优化方案</span></a></li></ol></div>
+            
+          </div>
+          <div class="post-toc-indicator-bottom post-toc-indicator">
+            <i class="fa fa-angle-double-down"></i>
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2016</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">voidzhang</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="http://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Muse
+  </a>
+</div>
+
+
+
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+
+  
+
+
+
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js"></script>
+
+  <script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js"></script>
+
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=0.5.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=0.5.0"></script>
+
+
+
+  
+  
+
+  
+  
+<script type="text/javascript" src="/js/src/scrollspy.js?v=0.5.0"></script>
+
+<script type="text/javascript" id="sidebar.toc.highlight">
+  $(document).ready(function () {
+    var tocSelector = '.post-toc';
+    var $tocSelector = $(tocSelector);
+    var activeCurrentSelector = '.active-current';
+
+    $tocSelector
+      .on('activate.bs.scrollspy', function () {
+        var $currentActiveElement = $(tocSelector + ' .active').last();
+
+        removeCurrentActiveClass();
+        $currentActiveElement.addClass('active-current');
+
+        $tocSelector[0].scrollTop = $currentActiveElement.position().top;
+      })
+      .on('clear.bs.scrollspy', function () {
+        removeCurrentActiveClass();
+      });
+
+    function removeCurrentActiveClass () {
+      $(tocSelector + ' ' + activeCurrentSelector)
+        .removeClass(activeCurrentSelector.substring(1));
+    }
+
+    function processTOC () {
+      getTOCMaxHeight();
+      toggleTOCOverflowIndicators();
+    }
+
+    function getTOCMaxHeight () {
+      var height = $('.sidebar').height() -
+                   $tocSelector.position().top -
+                   $('.post-toc-indicator-bottom').height();
+
+      $tocSelector.css('height', height);
+
+      return height;
+    }
+
+    function toggleTOCOverflowIndicators () {
+      tocOverflowIndicator(
+        '.post-toc-indicator-top',
+        $tocSelector.scrollTop() > 0 ? 'show' : 'hide'
+      );
+
+      tocOverflowIndicator(
+        '.post-toc-indicator-bottom',
+        $tocSelector.scrollTop() >= $tocSelector.find('ol').height() - $tocSelector.height() ? 'hide' : 'show'
+      )
+    }
+
+    $(document).on('sidebar.motion.complete', function () {
+      processTOC();
+    });
+
+    $('body').scrollspy({ target: tocSelector });
+    $(window).on('resize', function () {
+      if ( $('.sidebar').hasClass('sidebar-active') ) {
+        processTOC();
+      }
+    });
+
+    onScroll($tocSelector);
+
+    function onScroll (element) {
+      element.on('mousewheel DOMMouseScroll', function (event) {
+          var oe = event.originalEvent;
+          var delta = oe.wheelDelta || -oe.detail;
+
+          this.scrollTop += ( delta < 0 ? 1 : -1 ) * 30;
+          event.preventDefault();
+
+          toggleTOCOverflowIndicators();
+      });
+    }
+
+    function tocOverflowIndicator (indicator, action) {
+      var $indicator = $(indicator);
+      var opacity = action === 'show' ? 1 : 0;
+      $indicator.velocity ?
+        $indicator.velocity('stop').velocity({
+          opacity: opacity
+        }, { duration: 100 }) :
+        $indicator.stop().animate({
+          opacity: opacity
+        }, 100);
+    }
+
+  });
+</script>
+
+<script type="text/javascript" id="sidebar.nav">
+  $(document).ready(function () {
+    var html = $('html');
+    var TAB_ANIMATE_DURATION = 200;
+    var hasVelocity = $.isFunction(html.velocity);
+
+    $('.sidebar-nav li').on('click', function () {
+      var item = $(this);
+      var activeTabClassName = 'sidebar-nav-active';
+      var activePanelClassName = 'sidebar-panel-active';
+      if (item.hasClass(activeTabClassName)) {
+        return;
+      }
+
+      var currentTarget = $('.' + activePanelClassName);
+      var target = $('.' + item.data('target'));
+
+      hasVelocity ?
+        currentTarget.velocity('transition.slideUpOut', TAB_ANIMATE_DURATION, function () {
+          target
+            .velocity('stop')
+            .velocity('transition.slideDownIn', TAB_ANIMATE_DURATION)
+            .addClass(activePanelClassName);
+        }) :
+        currentTarget.animate({ opacity: 0 }, TAB_ANIMATE_DURATION, function () {
+          currentTarget.hide();
+          target
+            .stop()
+            .css({'opacity': 0, 'display': 'block'})
+            .animate({ opacity: 1 }, TAB_ANIMATE_DURATION, function () {
+              currentTarget.removeClass(activePanelClassName);
+              target.addClass(activePanelClassName);
+            });
+        });
+
+      item.siblings().removeClass(activeTabClassName);
+      item.addClass(activeTabClassName);
+    });
+
+    $('.post-toc a').on('click', function (e) {
+      e.preventDefault();
+      var targetSelector = NexT.utils.escapeSelector(this.getAttribute('href'));
+      var offset = $(targetSelector).offset().top;
+      hasVelocity ?
+        html.velocity('stop').velocity('scroll', {
+          offset: offset  + 'px',
+          mobileHA: false
+        }) :
+        $('html, body').stop().animate({
+          scrollTop: offset
+        }, 500);
+    });
+
+    // Expand sidebar on post detail page by default, when post has a toc.
+    NexT.motion.middleWares.sidebar = function () {
+      var $tocContent = $('.post-toc-content');
+
+      if (CONFIG.scheme !== 'Pisces' && (CONFIG.sidebar.display === 'post' || CONFIG.sidebar.display === 'always')) {
+        if ($tocContent.length > 0 && $tocContent.html().trim().length > 0) {
+          NexT.utils.displaySidebar();
+        }
+      }
+    };
+  });
+</script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=0.5.0"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"void"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+  
+
+
+
+
+
+  
+  
+  
+
+  
+
+
+</body>
+</html>

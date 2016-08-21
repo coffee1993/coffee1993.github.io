@@ -1,0 +1,1069 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css"/>
+
+
+
+
+  <link href="//fonts.googleapis.com/css?family=Lato:300,400,700,400italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=0.5.0" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Hexo, NexT" />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=0.5.0" />
+
+
+
+
+
+
+<meta name="description" content="目的似乎作为软件开发人员来说，一旦涉及硬件，不管是从心里还是从实际操作上都总有一层厚厚的隔阂，但是要认识Android清晰层次化的认识Android系统，也得咬牙去接触，我终究在等待这么一天：其实它没有想象的那么难，它层次相当分明，有助于们整体上去认识Android系统，更便于我们对源代码的分析。
+探究的位置：">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Android源代码基于goldfish-android-goldfish-3.4内核 硬件抽象层探究 HAL">
+<meta property="og:url" content="http://coffee1993.github.io/2016/04/07/Android系统-硬件抽象层探究-HAL/index.html">
+<meta property="og:site_name" content="空">
+<meta property="og:description" content="目的似乎作为软件开发人员来说，一旦涉及硬件，不管是从心里还是从实际操作上都总有一层厚厚的隔阂，但是要认识Android清晰层次化的认识Android系统，也得咬牙去接触，我终究在等待这么一天：其实它没有想象的那么难，它层次相当分明，有助于们整体上去认识Android系统，更便于我们对源代码的分析。
+探究的位置：">
+<meta property="og:image" content="http://7xrw2w.com1.z0.glb.clouddn.com/Android_Android.jpg">
+<meta property="og:image" content="http://7xrw2w.com1.z0.glb.clouddn.com/Android_HAL.png">
+<meta property="og:image" content="http://7xrw2w.com1.z0.glb.clouddn.com/Android_Kconfig_freg.png">
+<meta property="og:image" content="http://7xrw2w.com1.z0.glb.clouddn.com/Android_MakeMenuconfig.png">
+<meta property="og:image" content="http://7xrw2w.com1.z0.glb.clouddn.com/Android_%E7%BC%96%E8%AF%91%E9%80%89%E9%A1%B9.png">
+<meta property="og:image" content="http://7xrw2w.com1.z0.glb.clouddn.com/Android_freg_error.png">
+<meta property="og:image" content="http://7xrw2w.com1.z0.glb.clouddn.com/Android_freg_success.png">
+<meta property="og:updated_time" content="2016-06-10T04:40:48.288Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Android源代码基于goldfish-android-goldfish-3.4内核 硬件抽象层探究 HAL">
+<meta name="twitter:description" content="目的似乎作为软件开发人员来说，一旦涉及硬件，不管是从心里还是从实际操作上都总有一层厚厚的隔阂，但是要认识Android清晰层次化的认识Android系统，也得咬牙去接触，我终究在等待这么一天：其实它没有想象的那么难，它层次相当分明，有助于们整体上去认识Android系统，更便于我们对源代码的分析。
+探究的位置：">
+<meta name="twitter:image" content="http://7xrw2w.com1.z0.glb.clouddn.com/Android_Android.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Muse',
+    sidebar: {"position":"left","display":"post"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: 0,
+      author: '博主'
+    }
+  };
+</script>
+
+  <title> Android源代码基于goldfish-android-goldfish-3.4内核 硬件抽象层探究 HAL | 空 </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">空</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">我要信奉:我学过的每一样东西，我遭受的每一样苦难，都会在我一生中的某个时候派上用场 ——佩内洛普·菲兹杰拉德 《离岸》</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-home fa-fw"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-th fa-fw"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-archive fa-fw"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-tags fa-fw"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-user fa-fw"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      <li> <a title="把这个链接拖到你的Chrome收藏夹工具栏中" href='javascript:(function() {
+    function c() {
+        var e = document.createElement("link");
+        e.setAttribute("type", "text/css");
+        e.setAttribute("rel", "stylesheet");
+        e.setAttribute("href", f);
+        e.setAttribute("class", l);
+        document.body.appendChild(e)
+    }
+
+    function h() {
+        var e = document.getElementsByClassName(l);
+        for (var t = 0; t < e.length; t++) {
+            document.body.removeChild(e[t])
+        }
+    }
+
+    function p() {
+        var e = document.createElement("div");
+        e.setAttribute("class", a);
+        document.body.appendChild(e);
+        setTimeout(function() {
+            document.body.removeChild(e)
+        }, 100)
+    }
+
+    function d(e) {
+        return {
+            height : e.offsetHeight,
+            width : e.offsetWidth
+        }
+    }
+
+    function v(i) {
+        var s = d(i);
+        return s.height > e && s.height < n && s.width > t && s.width < r
+    }
+
+    function m(e) {
+        var t = e;
+        var n = 0;
+        while (!!t) {
+            n += t.offsetTop;
+            t = t.offsetParent
+        }
+        return n
+    }
+
+    function g() {
+        var e = document.documentElement;
+        if (!!window.innerWidth) {
+            return window.innerHeight
+        } else if (e && !isNaN(e.clientHeight)) {
+            return e.clientHeight
+        }
+        return 0
+    }
+
+    function y() {
+        if (window.pageYOffset) {
+            return window.pageYOffset
+        }
+        return Math.max(document.documentElement.scrollTop, document.body.scrollTop)
+    }
+
+    function E(e) {
+        var t = m(e);
+        return t >= w && t <= b + w
+    }
+
+    function S() {
+        var e = document.createElement("audio");
+        e.setAttribute("class", l);
+        e.src = i;
+        e.loop = false;
+        e.addEventListener("canplay", function() {
+            setTimeout(function() {
+                x(k)
+            }, 500);
+            setTimeout(function() {
+                N();
+                p();
+                for (var e = 0; e < O.length; e++) {
+                    T(O[e])
+                }
+            }, 15500)
+        }, true);
+        e.addEventListener("ended", function() {
+            N();
+            h()
+        }, true);
+        e.innerHTML = " <p>If you are reading this, it is because your browser does not support the audio element. We recommend that you get a new browser.</p> <p>";
+        document.body.appendChild(e);
+        e.play()
+    }
+
+    function x(e) {
+        e.className += " " + s + " " + o
+    }
+
+    function T(e) {
+        e.className += " " + s + " " + u[Math.floor(Math.random() * u.length)]
+    }
+
+    function N() {
+        var e = document.getElementsByClassName(s);
+        var t = new RegExp("\\b" + s + "\\b");
+        for (var n = 0; n < e.length; ) {
+            e[n].className = e[n].className.replace(t, "")
+        }
+    }
+
+    var e = 30;
+    var t = 30;
+    var n = 350;
+    var r = 350;
+    var i = "//s3.amazonaws.com/moovweb-marketing/playground/harlem-shake.mp3";
+    var s = "mw-harlem_shake_me";
+    var o = "im_first";
+    var u = ["im_drunk", "im_baked", "im_trippin", "im_blown"];
+    var a = "mw-strobe_light";
+    var f = "//s3.amazonaws.com/moovweb-marketing/playground/harlem-shake-style.css";
+    var l = "mw_added_css";
+    var b = g();
+    var w = y();
+    var C = document.getElementsByTagName("*");
+    var k = null;
+    for (var L = 0; L < C.length; L++) {
+        var A = C[L];
+        if (v(A)) {
+            if (E(A)) {
+                k = A;
+                break
+            }
+        }
+    }
+    if (A === null) {
+        console.warn("Could not find a node of the right size. Please try a different page.");
+        return
+    }
+    c();
+    S();
+    var O = [];
+    for (var L = 0; L < C.length; L++) {
+        var A = C[L];
+        if (v(A)) {
+            O.push(A)
+        }
+    }
+})()    '>High一下</a> </li>
+
+      
+
+
+    </ul>
+  
+
+  
+</nav>
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                Android源代码基于goldfish-android-goldfish-3.4内核 硬件抽象层探究 HAL
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-04-07T19:06:33+08:00" content="2016-04-07">
+              2016-04-07
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Android/" itemprop="url" rel="index">
+                    <span itemprop="name">Android</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2016/04/07/Android系统-硬件抽象层探究-HAL/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/04/07/Android系统-硬件抽象层探究-HAL/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="目的"><a href="#目的" class="headerlink" title="目的"></a>目的</h2><p>似乎作为软件开发人员来说，一旦涉及硬件，不管是从心里还是从实际操作上都总有一层厚厚的隔阂，但是要认识Android清晰层次化的认识Android系统，也得咬牙去接触，我终究在等待这么一天：其实它没有想象的那么难，它层次相当分明，有助于们整体上去认识Android系统，更便于我们对源代码的分析。</p>
+<h2 id="探究的位置："><a href="#探究的位置：" class="headerlink" title="探究的位置："></a>探究的位置：</h2><a id="more"></a>
+<blockquote>
+<p>学Android 的同学都看过下面一个图：</p>
+</blockquote>
+<p><img src="http://7xrw2w.com1.z0.glb.clouddn.com/Android_Android.jpg" alt=""></p>
+<p>在上图中，Application层就是一个个应用程序。Framework提供一个java的运行环境以及对功能实现的封装，Runtime/ART是一个java虚拟机，通过它编译java。从Libraries那些名字也可以看出来，这里有很多高端大气库，它是功能实现区，多媒体编解码，浏览器渲染，数据库实现，and so on。Kernel部分负责交互硬件。</p>
+<blockquote>
+<p>再看看站在 HAL的角度 重视这个架构：</p>
+</blockquote>
+<p><img src="http://7xrw2w.com1.z0.glb.clouddn.com/Android_HAL.png" alt=""></p>
+<p>内核空间中可以有特权操作硬件设备，而用户空间不行，用户空间包含了上层的一些应用层的功能模块，以及面向用户的Application。这样的分层结构实际上在保护移动设备厂商。<br>Hardware Abstract Layer (HAl) 硬件抽象层运行在用户空间中。</p>
+<hr>
+<h2 id="开发Android硬件驱动程序"><a href="#开发Android硬件驱动程序" class="headerlink" title="开发Android硬件驱动程序"></a>开发Android硬件驱动程序</h2><h3 id="实现内核驱动模块"><a href="#实现内核驱动模块" class="headerlink" title="实现内核驱动模块"></a>实现内核驱动模块</h3><p>目录结构</p>
+<ul>
+<li>~/Android/kernel/goldfish-android-goldfish-3.4<ul>
+<li>drivers<ul>
+<li>freg<ul>
+<li>freg.h</li>
+<li>freg.c</li>
+<li>Kconfig</li>
+<li>Makefile<br>关于命名 freg:<br>按照老罗的最高指示：我开发的是一个虚拟的字符硬件设备驱动程序，手里没有任何单片机或者寄存器，当然是开发虚拟的了…实体的玩意儿我也搞不了呀，这个字符硬件虚拟设备只有一个大小为4个字节的可读可写寄存器，叫做fake register,驱动程序命令为freg。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>在其目录下创建上述四个文件：<br><figure class="highlight elixir"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">coffee<span class="variable">@ubuntu</span><span class="symbol">:~/Android/kernel/goldfish-android-goldfish-</span><span class="number">3.4</span>/drivers/freg<span class="variable">$ </span>ls</span><br><span class="line">freg.c  freg.h  Kconfig  Makefile</span><br></pre></td></tr></table></figure></p>
+<p>freg.h</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> _FAKE_REG_H_  </span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> _FAKE_REG_H_</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/cdev.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/semaphore.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">//描述虚拟硬件设备在 文件系统中的名称</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> FREG_DEVICE_NODE_NAME  <span class="string">"freg"</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> FREG_DEVICE_FILE_NAME  <span class="string">"freg"</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> FREG_DEVICE_PROC_NAME  <span class="string">"freg"</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> FREG_DEVICE_CLASS_NAME <span class="string">"freg"</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">//描述虚拟硬件设备</span></span><br><span class="line"><span class="keyword">struct</span> fake_reg_dev &#123;</span><br><span class="line"><span class="keyword">int</span> val;                <span class="comment">//虚拟寄存器</span></span><br><span class="line"><span class="keyword">struct</span> semaphore sem;   <span class="comment">//信号量 实现寄存器的同步访问</span></span><br><span class="line"><span class="keyword">struct</span> cdev dev;        <span class="comment">//标准 Linux 字符设备结构体变量， 标志该设备类型 是一个 字符设备</span></span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br></pre></td></tr></table></figure>
+<p>freg.c 为驱动程序的实现文件，该程序主要实现了 向用户空间提供了三个接口来访问该虚拟设备中的寄存器val</p>
+<ul>
+<li>接口1 proc文件系统接口</li>
+<li>接口2 设备文件系统接口</li>
+<li>接口3 devfs文件系统接口</li>
+</ul>
+<p>freg.c</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br><span class="line">218</span><br><span class="line">219</span><br><span class="line">220</span><br><span class="line">221</span><br><span class="line">222</span><br><span class="line">223</span><br><span class="line">224</span><br><span class="line">225</span><br><span class="line">226</span><br><span class="line">227</span><br><span class="line">228</span><br><span class="line">229</span><br><span class="line">230</span><br><span class="line">231</span><br><span class="line">232</span><br><span class="line">233</span><br><span class="line">234</span><br><span class="line">235</span><br><span class="line">236</span><br><span class="line">237</span><br><span class="line">238</span><br><span class="line">239</span><br><span class="line">240</span><br><span class="line">241</span><br><span class="line">242</span><br><span class="line">243</span><br><span class="line">244</span><br><span class="line">245</span><br><span class="line">246</span><br><span class="line">247</span><br><span class="line">248</span><br><span class="line">249</span><br><span class="line">250</span><br><span class="line">251</span><br><span class="line">252</span><br><span class="line">253</span><br><span class="line">254</span><br><span class="line">255</span><br><span class="line">256</span><br><span class="line">257</span><br><span class="line">258</span><br><span class="line">259</span><br><span class="line">260</span><br><span class="line">261</span><br><span class="line">262</span><br><span class="line">263</span><br><span class="line">264</span><br><span class="line">265</span><br><span class="line">266</span><br><span class="line">267</span><br><span class="line">268</span><br><span class="line">269</span><br><span class="line">270</span><br><span class="line">271</span><br><span class="line">272</span><br><span class="line">273</span><br><span class="line">274</span><br><span class="line">275</span><br><span class="line">276</span><br><span class="line">277</span><br><span class="line">278</span><br><span class="line">279</span><br><span class="line">280</span><br><span class="line">281</span><br><span class="line">282</span><br><span class="line">283</span><br><span class="line">284</span><br><span class="line">285</span><br><span class="line">286</span><br><span class="line">287</span><br><span class="line">288</span><br><span class="line">289</span><br><span class="line">290</span><br><span class="line">291</span><br><span class="line">292</span><br><span class="line">293</span><br><span class="line">294</span><br><span class="line">295</span><br><span class="line">296</span><br><span class="line">297</span><br><span class="line">298</span><br><span class="line">299</span><br><span class="line">300</span><br><span class="line">301</span><br><span class="line">302</span><br><span class="line">303</span><br><span class="line">304</span><br><span class="line">305</span><br><span class="line">306</span><br><span class="line">307</span><br><span class="line">308</span><br><span class="line">309</span><br><span class="line">310</span><br><span class="line">311</span><br><span class="line">312</span><br><span class="line">313</span><br><span class="line">314</span><br><span class="line">315</span><br><span class="line">316</span><br><span class="line">317</span><br><span class="line">318</span><br><span class="line">319</span><br><span class="line">320</span><br><span class="line">321</span><br><span class="line">322</span><br><span class="line">323</span><br><span class="line">324</span><br><span class="line">325</span><br><span class="line">326</span><br><span class="line">327</span><br><span class="line">328</span><br><span class="line">329</span><br><span class="line">330</span><br><span class="line">331</span><br><span class="line">332</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/init.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/module.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/types.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/fs.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/proc_fs.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/device.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;asm/uaccess.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="string">"freg.h"</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">//主设备号 和 从设备号</span></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">int</span> freg_major = <span class="number">0</span>;</span><br><span class="line"><span class="keyword">static</span> <span class="keyword">int</span> freg_minor = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">struct</span> <span class="keyword">class</span>* freg_class = <span class="literal">NULL</span>;</span><br><span class="line"><span class="keyword">static</span> <span class="keyword">struct</span> fake_reg_dev* freg_dev = <span class="literal">NULL</span>;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">//传统的设备文件操作方法</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">freg_open</span><span class="params">(<span class="keyword">struct</span> inode* inode, <span class="keyword">struct</span> file* filp)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">freg_release</span><span class="params">(<span class="keyword">struct</span> inode* inode, <span class="keyword">struct</span> file* filp)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">static</span> ssize_t <span class="title">freg_read</span><span class="params">(<span class="keyword">struct</span> file* filp, <span class="keyword">char</span> __user *buf, size_t count, loff_t* f_pos)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">static</span> ssize_t <span class="title">freg_write</span><span class="params">(<span class="keyword">struct</span> file* filp, <span class="keyword">const</span> <span class="keyword">char</span> __user *buf, size_t count, loff_t* f_pos)</span></span>;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// 传统的设备文件操作方法表</span></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">struct</span> file_operations freg_fops = &#123;</span><br><span class="line">        .owner = THIS_MODULE,</span><br><span class="line">        .open = freg_open,</span><br><span class="line">        .release = freg_release,</span><br><span class="line">        .read = freg_read,</span><br><span class="line">        .write = freg_write,</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">// devfs 文件系统的设备属性操作方法</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> ssize_t <span class="title">freg_val_show</span><span class="params">(<span class="keyword">struct</span> device* dev, <span class="keyword">struct</span> device_attribute* attr,  <span class="keyword">char</span>* buf)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">static</span> ssize_t <span class="title">freg_val_store</span><span class="params">(<span class="keyword">struct</span> device* dev, <span class="keyword">struct</span> device_attribute* attr, <span class="keyword">const</span> <span class="keyword">char</span>* buf, size_t count)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">// devfs 文件系统的设备属性</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="title">DEVICE_ATTR</span><span class="params">(val, S_IRUGO | S_IWUSR, freg_val_show, freg_val_store)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 传统的设备文件操作方法实现： 打开 设备</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">freg_open</span><span class="params">(<span class="keyword">struct</span> inode* inode, <span class="keyword">struct</span> file* filp)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">struct</span> fake_reg_dev* dev;</span><br><span class="line"></span><br><span class="line">	dev = container_of(inode-&gt;i_cdev, <span class="keyword">struct</span> fake_reg_dev, dev);</span><br><span class="line">	filp-&gt;private_data = dev;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// 传统的设备文件操作方法实现： 释放</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">freg_release</span><span class="params">(<span class="keyword">struct</span> inode* inode, <span class="keyword">struct</span> file* filp)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// 传统的设备文件操作方法实现： 读取 val寄存器的值</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> ssize_t <span class="title">freg_read</span><span class="params">(<span class="keyword">struct</span> file* filp, <span class="keyword">char</span> __user *buf, size_t count, loff_t* f_pos)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">ssize_t</span> err = <span class="number">0</span>;</span><br><span class="line">	<span class="keyword">struct</span> fake_reg_dev* dev = filp-&gt;private_data;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span>(down_interruptible(&amp;(dev-&gt;sem))) &#123;</span><br><span class="line">		<span class="keyword">return</span> -ERESTARTSYS;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span>(count &lt; <span class="keyword">sizeof</span>(dev-&gt;val)) &#123;</span><br><span class="line">		<span class="keyword">goto</span> out;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span>(copy_to_user(buf, &amp;(dev-&gt;val), <span class="keyword">sizeof</span>(dev-&gt;val))) &#123;</span><br><span class="line">		err = -EFAULT;</span><br><span class="line">		<span class="keyword">goto</span> out;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	err = <span class="keyword">sizeof</span>(dev-&gt;val);</span><br><span class="line"></span><br><span class="line">out:</span><br><span class="line">	up(&amp;(dev-&gt;sem));</span><br><span class="line">	<span class="keyword">return</span> err;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// 传统的设备文件操作方法实现： 写 val寄存器</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> ssize_t <span class="title">freg_write</span><span class="params">(<span class="keyword">struct</span> file* filp, <span class="keyword">const</span> <span class="keyword">char</span> __user *buf, size_t count, loff_t* f_pos)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">struct</span> fake_reg_dev* dev = filp-&gt;private_data;</span><br><span class="line">	<span class="keyword">ssize_t</span> err = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span>(down_interruptible(&amp;(dev-&gt;sem))) &#123;</span><br><span class="line">                <span class="keyword">return</span> -ERESTARTSYS;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span>(count != <span class="keyword">sizeof</span>(dev-&gt;val)) &#123;</span><br><span class="line">                <span class="keyword">goto</span> out;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span>(copy_from_user(&amp;(dev-&gt;val), buf, count)) &#123;</span><br><span class="line">		err = -EFAULT;</span><br><span class="line">		<span class="keyword">goto</span> out;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	err = <span class="keyword">sizeof</span>(dev-&gt;val);</span><br><span class="line"></span><br><span class="line">out:</span><br><span class="line">	up(&amp;(dev-&gt;sem));</span><br><span class="line">	<span class="keyword">return</span> err;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// 传统的设备文件操作方法 - 内部使用： 读出 val -- buf缓冲器</span></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">ssize_t</span> __freg_get_val(<span class="keyword">struct</span> fake_reg_dev* dev, <span class="keyword">char</span>* buf) &#123;</span><br><span class="line">	<span class="keyword">int</span> val = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span>(down_interruptible(&amp;(dev-&gt;sem))) &#123;</span><br><span class="line">                <span class="keyword">return</span> -ERESTARTSYS;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        val = dev-&gt;val;</span><br><span class="line">        up(&amp;(dev-&gt;sem));</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> <span class="built_in">snprintf</span>(buf, PAGE_SIZE, <span class="string">"%d\n"</span>, val);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 传统的设备文件操作方法 - 内部使用： 写入  buf缓冲器  -- val</span></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">ssize_t</span> __freg_set_val(<span class="keyword">struct</span> fake_reg_dev* dev, <span class="keyword">const</span> <span class="keyword">char</span>* buf, <span class="keyword">size_t</span> count) &#123;</span><br><span class="line">	<span class="keyword">int</span> val = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">        val = simple_strtol(buf, <span class="literal">NULL</span>, <span class="number">10</span>);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span>(down_interruptible(&amp;(dev-&gt;sem))) &#123;</span><br><span class="line">                <span class="keyword">return</span> -ERESTARTSYS;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        dev-&gt;val = val;</span><br><span class="line">        up(&amp;(dev-&gt;sem));</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> count;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// devfs 文件系统的设备属性操作方法实现  读出 设备属性val值</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> ssize_t <span class="title">freg_val_show</span><span class="params">(<span class="keyword">struct</span> device* dev, <span class="keyword">struct</span> device_attribute* attr, <span class="keyword">char</span>* buf)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">struct</span> fake_reg_dev* hdev = (<span class="keyword">struct</span> fake_reg_dev*)dev_get_drvdata(dev);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> __freg_get_val(hdev, buf);</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// devfs 文件系统的设备属性操作方法实现  写入 设备属性val值</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> ssize_t <span class="title">freg_val_store</span><span class="params">(<span class="keyword">struct</span> device* dev, <span class="keyword">struct</span> device_attribute* attr, <span class="keyword">const</span> <span class="keyword">char</span>* buf, size_t count)</span> </span>&#123;</span><br><span class="line">	 <span class="keyword">struct</span> fake_reg_dev* hdev = (<span class="keyword">struct</span> fake_reg_dev*)dev_get_drvdata(dev);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> __freg_set_val(hdev, buf, count);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// devfs 文件系统的设备属性操作方法实现 --内部使用  读出 寄存器 val值 -- 缓冲区</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> ssize_t <span class="title">freg_proc_read</span><span class="params">(<span class="keyword">char</span>* page, <span class="keyword">char</span>** start, off_t off, <span class="keyword">int</span> count, <span class="keyword">int</span>* eof, <span class="keyword">void</span>* data)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">if</span>(off &gt; <span class="number">0</span>) &#123;</span><br><span class="line">		*eof = <span class="number">1</span>;</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> __freg_get_val(freg_dev, page);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// devfs 文件系统的设备属性操作方法实现  --内部使用 写入 缓冲区 -- 寄存器 val值</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> ssize_t <span class="title">freg_proc_write</span><span class="params">(<span class="keyword">struct</span> file* filp, <span class="keyword">const</span> <span class="keyword">char</span> __user *buff, <span class="keyword">unsigned</span> <span class="keyword">long</span> len, <span class="keyword">void</span>* data)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">int</span> err = <span class="number">0</span>;</span><br><span class="line">	<span class="keyword">char</span>* page = <span class="literal">NULL</span>;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span>(len &gt; PAGE_SIZE) &#123;</span><br><span class="line">		printk(KERN_ALERT<span class="string">"The buff is too large: %lu.\n"</span>, len);</span><br><span class="line">		<span class="keyword">return</span> -EFAULT;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	page = (<span class="keyword">char</span>*)__get_free_page(GFP_KERNEL);</span><br><span class="line">	<span class="keyword">if</span>(!page) &#123;</span><br><span class="line">                printk(KERN_ALERT<span class="string">"Failed to alloc page.\n"</span>);</span><br><span class="line">		<span class="keyword">return</span> -ENOMEM;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span>(copy_from_user(page, buff, len)) &#123;</span><br><span class="line">		printk(KERN_ALERT<span class="string">"Failed to copy buff from user.\n"</span>);</span><br><span class="line">                err = -EFAULT;</span><br><span class="line">		<span class="keyword">goto</span> out;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	err = __freg_set_val(freg_dev, page, len);</span><br><span class="line"></span><br><span class="line">out:</span><br><span class="line">	free_page((<span class="keyword">unsigned</span> <span class="keyword">long</span>)page);</span><br><span class="line">	<span class="keyword">return</span> err;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">//创建 /proc/freg文件</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">freg_create_proc</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">struct</span> proc_dir_entry* entry;</span><br><span class="line"></span><br><span class="line">	entry = create_proc_entry(FREG_DEVICE_PROC_NAME, <span class="number">0</span>, <span class="literal">NULL</span>);</span><br><span class="line">	<span class="keyword">if</span>(entry) &#123;</span><br><span class="line"><span class="comment">//		entry-&gt;owner = THIS_MODULE;  // error in here</span></span><br><span class="line">		entry-&gt;read_proc = freg_proc_read;</span><br><span class="line">		entry-&gt;write_proc = freg_proc_write;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//删除 /proc/freg文件</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">freg_remove_proc</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">	remove_proc_entry(FREG_DEVICE_PROC_NAME, <span class="literal">NULL</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//初始化设备</span></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">int</span>  __freg_setup_dev(<span class="keyword">struct</span> fake_reg_dev* dev) &#123;</span><br><span class="line">	<span class="keyword">int</span> err;</span><br><span class="line">	<span class="keyword">dev_t</span> devno = MKDEV(freg_major, freg_minor);</span><br><span class="line"></span><br><span class="line">	<span class="built_in">memset</span>(dev, <span class="number">0</span>, <span class="keyword">sizeof</span>(<span class="keyword">struct</span> fake_reg_dev));</span><br><span class="line"></span><br><span class="line">	cdev_init(&amp;(dev-&gt;dev), &amp;freg_fops);</span><br><span class="line">	dev-&gt;dev.owner = THIS_MODULE;</span><br><span class="line">	dev-&gt;dev.ops = &amp;freg_fops;</span><br><span class="line"></span><br><span class="line">	err = cdev_add(&amp;(dev-&gt;dev),devno, <span class="number">1</span>);</span><br><span class="line">	<span class="keyword">if</span>(err) &#123;</span><br><span class="line">		<span class="keyword">return</span> err;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">    sema_init(&amp;(dev-&gt;sem),<span class="number">1</span>);</span><br><span class="line">	dev-&gt;val = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//模块加载方法</span></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">int</span> __<span class="function">init <span class="title">freg_init</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">int</span> err = <span class="number">-1</span>;</span><br><span class="line">	<span class="keyword">dev_t</span> dev = <span class="number">0</span>;</span><br><span class="line">	<span class="keyword">struct</span> device* temp = <span class="literal">NULL</span>;</span><br><span class="line"></span><br><span class="line">	printk(KERN_ALERT<span class="string">"Initializing freg device.\n"</span>);</span><br><span class="line"></span><br><span class="line">	err = alloc_chrdev_region(&amp;dev, <span class="number">0</span>, <span class="number">1</span>, FREG_DEVICE_NODE_NAME);</span><br><span class="line">	<span class="keyword">if</span>(err &lt; <span class="number">0</span>) &#123;</span><br><span class="line">		printk(KERN_ALERT<span class="string">"Failed to alloc char dev region.\n"</span>);</span><br><span class="line">		<span class="keyword">goto</span> fail;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	freg_major = MAJOR(dev);</span><br><span class="line">	freg_minor = MINOR(dev);</span><br><span class="line"></span><br><span class="line">	freg_dev = kmalloc(<span class="keyword">sizeof</span>(<span class="keyword">struct</span> fake_reg_dev), GFP_KERNEL);</span><br><span class="line">	<span class="keyword">if</span>(!freg_dev) &#123;</span><br><span class="line">		err = -ENOMEM;</span><br><span class="line">		printk(KERN_ALERT<span class="string">"Failed to alloc freg device.\n"</span>);</span><br><span class="line">		<span class="keyword">goto</span> unregister;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	err = __freg_setup_dev(freg_dev);</span><br><span class="line">	<span class="keyword">if</span>(err) &#123;</span><br><span class="line">		printk(KERN_ALERT<span class="string">"Failed to setup freg device: %d.\n"</span>, err);</span><br><span class="line">		<span class="keyword">goto</span> cleanup;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	freg_class = class_create(THIS_MODULE, FREG_DEVICE_CLASS_NAME);</span><br><span class="line">	<span class="keyword">if</span>(IS_ERR(freg_class)) &#123;</span><br><span class="line">		err = PTR_ERR(freg_class);</span><br><span class="line">		printk(KERN_ALERT<span class="string">"Failed to create freg device class.\n"</span>);</span><br><span class="line">		<span class="keyword">goto</span> destroy_cdev;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	temp = device_create(freg_class, <span class="literal">NULL</span>, dev, <span class="string">"%s"</span>, FREG_DEVICE_FILE_NAME);</span><br><span class="line">	<span class="keyword">if</span>(IS_ERR(temp)) &#123;</span><br><span class="line">		err = PTR_ERR(temp);</span><br><span class="line">		printk(KERN_ALERT<span class="string">"Failed to create freg device.\n"</span>);</span><br><span class="line">		<span class="keyword">goto</span> destroy_class;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	err = device_create_file(temp, &amp;dev_attr_val);</span><br><span class="line">	<span class="keyword">if</span>(err &lt; <span class="number">0</span>) &#123;</span><br><span class="line">		printk(KERN_ALERT<span class="string">"Failed to create attribute val of freg device.\n"</span>);</span><br><span class="line">                <span class="keyword">goto</span> destroy_device;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	dev_set_drvdata(temp, freg_dev);</span><br><span class="line"></span><br><span class="line">	freg_create_proc();</span><br><span class="line"></span><br><span class="line">	printk(KERN_ALERT<span class="string">"Succedded to initialize freg device.\n"</span>);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">destroy_device:</span><br><span class="line">	device_destroy(freg_class, dev);</span><br><span class="line">destroy_class:</span><br><span class="line">	class_destroy(freg_class);</span><br><span class="line">destroy_cdev:</span><br><span class="line">	cdev_del(&amp;(freg_dev-&gt;dev));</span><br><span class="line">cleanup:</span><br><span class="line">	kfree(freg_dev);</span><br><span class="line">unregister:</span><br><span class="line">	unregister_chrdev_region(MKDEV(freg_major, freg_minor), <span class="number">1</span>);</span><br><span class="line">fail:</span><br><span class="line">	<span class="keyword">return</span> err;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">//模块卸载方法</span></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">void</span> __<span class="function"><span class="built_in">exit</span> <span class="title">freg_exit</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">dev_t</span> devno = MKDEV(freg_major, freg_minor);</span><br><span class="line"></span><br><span class="line">	printk(KERN_ALERT<span class="string">"Destroy freg device.\n"</span>);</span><br><span class="line"></span><br><span class="line">	freg_remove_proc();</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span>(freg_class) &#123;</span><br><span class="line">		device_destroy(freg_class, MKDEV(freg_major, freg_minor));</span><br><span class="line">		class_destroy(freg_class);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span>(freg_dev) &#123;</span><br><span class="line">		cdev_del(&amp;(freg_dev-&gt;dev));</span><br><span class="line">		kfree(freg_dev);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	unregister_chrdev_region(devno, <span class="number">1</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">MODULE_LICENSE(<span class="string">"GPL"</span>);</span><br><span class="line">MODULE_DESCRIPTION(<span class="string">"Fake Register Driver"</span>);</span><br><span class="line"></span><br><span class="line">module_init(freg_init);</span><br><span class="line">module_exit(freg_exit);</span><br></pre></td></tr></table></figure>
+<p>Kconfig</p>
+<p>在编译freg之前，我们需要通过 make menuconfig 命令来设置这些选项，指定驱动程序freg的编译方式。<br>下面的配置文件有三种方式来编译：</p>
+<ul>
+<li>建立在内核中</li>
+<li>编译成内核模块</li>
+<li>不编译到内核中</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">config FREG</span><br><span class="line">tristate <span class="string">"Fake Register Driver"</span></span><br><span class="line">default n</span><br><span class="line"><span class="built_in">help</span></span><br><span class="line">This is the freg driver <span class="keyword">for</span> android system.</span><br></pre></td></tr></table></figure>
+<p>Makefile</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">obj-$(CONFIG_FREG) += freg.o</span><br></pre></td></tr></table></figure>
+<h3 id="修改Kconfig文件"><a href="#修改Kconfig文件" class="headerlink" title="修改Kconfig文件"></a>修改Kconfig文件</h3><p>我们需要修改内核的根Kconfig文件，让直行make menuconfig 的时候，让编译系统找到驱动程序freg的Kconfig文件<br>一般来说，各个CPU体系架构目录下的Kconifg文件都会通过source “drivers/Kconfig” 命令将drivers 目录下的Kconfig文件包含进去。</p>
+<p>打开drivers/Kcofig文件 添加 source “drivers/freg/Kconfig”</p>
+<p><img src="http://7xrw2w.com1.z0.glb.clouddn.com/Android_Kconfig_freg.png" alt="Kconfig"></p>
+<h3 id="修改内核Makefile文件"><a href="#修改内核Makefile文件" class="headerlink" title="修改内核Makefile文件"></a>修改内核Makefile文件</h3><p>不仅是Kconfig需要让编译器找到，新增的驱动的Makefile也要让编译器找到，所以需要修改内核的Makefile文件。<br>drivers/Makefile下添加<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">obj-$(CONFIG_FREG) += freg/</span><br></pre></td></tr></table></figure></p>
+<h3 id="编译内核驱动程序模块"><a href="#编译内核驱动程序模块" class="headerlink" title="编译内核驱动程序模块"></a>编译内核驱动程序模块</h3><p>设置编译选项 make menuconfig</p>
+<p>  <img src="http://7xrw2w.com1.z0.glb.clouddn.com/Android_MakeMenuconfig.png" alt=""></p>
+<p>  <img src="http://7xrw2w.com1.z0.glb.clouddn.com/Android_%E7%BC%96%E8%AF%91%E9%80%89%E9%A1%B9.png" alt=""><br>执行 make menuconfig 命令来配置编译方式：<br>Fake Register Driver 选项</p>
+<ul>
+<li>❤ 号 表示建立在内核中</li>
+<li>M 表示 编译成内核模块<br>exit后 执行 make<br>error1<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">In <span class="keyword">function</span> <span class="string">'freg_create_proc'</span>:</span><br><span class="line">error: <span class="string">'struct proc_dir_entry'</span> has no member named <span class="string">'owner'</span></span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p>原因：</p>
+<p>由错误信息可以看出struct proc_dir_entry结构体中没有找到owner的成员。<br>看到引用的proc_fs.h头文件，发现里面的struct proc_dir_entry结构体中，是有owner成员的，Linux API 里说在2.6版本，struct proc_dir_entry:owner就已经被移除了<br>我也尝试注释掉owner使用的代码，跟踪到 freg.c 的create文件：<br><img src="http://7xrw2w.com1.z0.glb.clouddn.com/Android_freg_error.png" alt=""><br>error2 :<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">implicit declaration of <span class="keyword">function</span> <span class="string">'init_MUTEX'</span> [-Werror=implicit-function-declaration]</span><br></pre></td></tr></table></figure></p>
+<p>原因：<br>在新版本的linux内核中，init_mutex已经被废除了，新版本使用sema_init函数。查了一下早期版本的定义：<br>新内核中的定义：<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span><br><span class="line"> * linux/include/asm-arm/semaphore.h</span><br><span class="line"> */</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> __ASM_ARM_SEMAPHORE_H</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> __ASM_ARM_SEMAPHORE_H</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/linkage.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/spinlock.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/wait.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;linux/rwsem.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;asm/atomic.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;asm/locks.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">struct</span> semaphore &#123;</span><br><span class="line">    <span class="keyword">atomic_t</span> count;</span><br><span class="line">    <span class="keyword">int</span> sleepers;</span><br><span class="line">    <span class="keyword">wait_queue_head_t</span> wait;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> __SEMAPHORE_INIT(name, cnt)             </span></span><br><span class="line">&#123;                               </span><br><span class="line">    .count  = ATOMIC_INIT(cnt),             </span><br><span class="line">    .wait   = __WAIT_QUEUE_HEAD_INITIALIZER((name).wait),   </span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> __DECLARE_SEMAPHORE_GENERIC(name,count)</span></span><br><span class="line">    <span class="keyword">struct</span> semaphore name = __SEMAPHORE_INIT(name,count)</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> DECLARE_MUTEX(name)     __DECLARE_SEMAPHORE_GENERIC(name,1)</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> DECLARE_MUTEX_LOCKED(name)  __DECLARE_SEMAPHORE_GENERIC(name,0)</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">inline</span> <span class="keyword">void</span> <span class="title">sema_init</span><span class="params">(<span class="keyword">struct</span> semaphore *sem, <span class="keyword">int</span> val)</span></span><br><span class="line"></span>&#123;</span><br><span class="line">    atomic_set(&amp;sem-&gt;count, val);</span><br><span class="line">    sem-&gt;sleepers = <span class="number">0</span>;</span><br><span class="line">    init_waitqueue_head(&amp;sem-&gt;wait);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">inline</span> <span class="keyword">void</span> <span class="title">init_MUTEX</span><span class="params">(<span class="keyword">struct</span> semaphore *sem)</span></span><br><span class="line"></span>&#123;</span><br><span class="line">    sema_init(sem, <span class="number">1</span>);</span><br><span class="line">&#125;</span><br><span class="line">.....</span><br><span class="line">....</span><br></pre></td></tr></table></figure></p>
+<p>老内核中的定义<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">inline</span> <span class="keyword">void</span> <span class="title">sema_init</span><span class="params">(<span class="keyword">struct</span> semaphore *sem, <span class="keyword">int</span> val)</span></span><br><span class="line"> </span>&#123;</span><br><span class="line">        <span class="keyword">static</span> <span class="keyword">struct</span> lock_class_key __key;</span><br><span class="line">        *sem = (<span class="keyword">struct</span> semaphore) __SEMAPHORE_INITIALIZER(*sem, val);</span><br><span class="line">      lockdep_init_map(&amp;sem-&gt;lock.dep_map, <span class="string">"semaphore-&gt;lock"</span>, &amp;__key, <span class="number">0</span>);</span><br><span class="line"> &#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> init_MUTEX(sem)         sema_init(sem, 1)<span class="comment">//在最新的版本中没有这两个宏定义了</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> init_MUTEX_LOCKED(sem)  sema_init(sem, 0)</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">extern</span> <span class="keyword">void</span> <span class="title">down</span><span class="params">(<span class="keyword">struct</span> semaphore *sem)</span></span>;</span><br><span class="line"><span class="keyword">extern</span> <span class="keyword">int</span> __<span class="function">must_check <span class="title">down_interruptible</span><span class="params">(<span class="keyword">struct</span> semaphore *sem)</span></span>;</span><br><span class="line"><span class="keyword">extern</span> <span class="keyword">int</span> __<span class="function">must_check <span class="title">down_killable</span><span class="params">(<span class="keyword">struct</span> semaphore *sem)</span></span>;</span><br><span class="line"><span class="keyword">extern</span> <span class="keyword">int</span> __<span class="function">must_check <span class="title">down_trylock</span><span class="params">(<span class="keyword">struct</span> semaphore *sem)</span></span>;</span><br><span class="line"><span class="keyword">extern</span> <span class="keyword">int</span> __<span class="function">must_check <span class="title">down_timeout</span><span class="params">(<span class="keyword">struct</span> semaphore *sem, <span class="keyword">long</span> jiffies)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">extern</span> <span class="keyword">void</span> <span class="title">up</span><span class="params">(<span class="keyword">struct</span> semaphore *sem)</span></span>;</span><br></pre></td></tr></table></figure></p>
+<p>解决办法：绕过函数 init_MUTEX ,在freg.c中直接调用：sema_init(),不过要添加一个整形参数1<br><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">semaphore.h：</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">inline</span> <span class="keyword">void</span> <span class="title">init_MUTEX</span><span class="params">(<span class="keyword">struct</span> semaphore *sem)</span></span><br><span class="line"></span>&#123;</span><br><span class="line">  sema_init(sem, <span class="number">1</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>freg.c 修改 init_MUTEX()调用<br><figure class="highlight hsp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//初始化设备</span></span><br><span class="line">static <span class="keyword">int</span>  __freg_setup_dev(struct fake_reg_dev* dev) &#123;</span><br><span class="line">    <span class="keyword">int</span> <span class="keyword">err</span><span class="comment">;</span></span><br><span class="line">    dev_t devno = MKDEV(freg_major, freg_minor)<span class="comment">;</span></span><br><span class="line">    <span class="keyword">memset</span>(dev, <span class="number">0</span>, sizeof(struct fake_reg_dev))<span class="comment">;</span></span><br><span class="line">    cdev_init(&amp;(dev-&gt;dev), &amp;freg_fops)<span class="comment">;</span></span><br><span class="line">    dev-&gt;dev.owner = THIS_MODULE<span class="comment">;</span></span><br><span class="line">    dev-&gt;dev.ops = &amp;freg_fops<span class="comment">;</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">err</span> = cdev_add(&amp;(dev-&gt;dev),devno, <span class="number">1</span>)<span class="comment">;</span></span><br><span class="line">    <span class="keyword">if</span>(<span class="keyword">err</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">err</span><span class="comment">;</span></span><br><span class="line">    &#125;   </span><br><span class="line"></span><br><span class="line">    sema_init(&amp;(dev-&gt;sem),<span class="number">1</span>)<span class="comment">; //modify init_MUTEX()</span></span><br><span class="line">    dev-&gt;val = <span class="number">0</span><span class="comment">;</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span><span class="comment">;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>编译成功：</p>
+<p><img src="http://7xrw2w.com1.z0.glb.clouddn.com/Android_freg_success.png" alt="成功截图"></p>
+<p>内核镜像文件zImage 保存在arch/arm/boot目录下，可以用它来启动Android模拟器</p>
+<h3 id="验证内核驱动程序模块"><a href="#验证内核驱动程序模块" class="headerlink" title="验证内核驱动程序模块"></a>验证内核驱动程序模块</h3><blockquote>
+<p>分别验证 proc文件系统接口, devfs 文件系统， dev文件系统来访问虚拟寄存器</p>
+</blockquote>
+<p>首先打开Android模拟器：</p>
+<figure class="highlight dts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">emulator -kernel <span class="meta-keyword">/kerner/</span>goldfish-android-goldfish<span class="number">-3.4</span><span class="meta-keyword">/arch/</span>arm<span class="meta-keyword">/boot/</span>zImage &amp;</span><br><span class="line">adb shell</span><br></pre></td></tr></table></figure>
+<h4 id="proc文件系统接口访问虚拟寄存器验证"><a href="#proc文件系统接口访问虚拟寄存器验证" class="headerlink" title="proc文件系统接口访问虚拟寄存器验证"></a>proc文件系统接口访问虚拟寄存器验证</h4><figure class="highlight nimrod"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">cd dev //验证驱动程序freg是否成功注册虚拟硬件设备到设备文件系统中</span><br><span class="line">ls freg</span><br><span class="line">freg //有显示说明注册成功</span><br><span class="line"></span><br><span class="line">root@<span class="keyword">generic</span>://<span class="keyword">proc</span> <span class="comment"># cat freg                                                 </span></span><br><span class="line"><span class="number">0</span></span><br><span class="line">root@<span class="keyword">generic</span>://<span class="keyword">proc</span> <span class="comment"># echo '5' &gt; freg  </span></span><br><span class="line"></span><br><span class="line">root@<span class="keyword">generic</span>://<span class="keyword">proc</span> <span class="comment"># cat freg                                                 </span></span><br><span class="line"><span class="number">5</span></span><br><span class="line">//成功显示</span><br></pre></td></tr></table></figure>
+<h4 id="devfs-文件系统接口访问虚拟寄存器验证"><a href="#devfs-文件系统接口访问虚拟寄存器验证" class="headerlink" title="devfs 文件系统接口访问虚拟寄存器验证"></a>devfs 文件系统接口访问虚拟寄存器验证</h4><figure class="highlight elixir"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">root<span class="variable">@generic</span><span class="symbol">://sys/class/freg/freg</span> <span class="comment"># cat val                                   </span></span><br><span class="line"><span class="number">5</span></span><br><span class="line">root<span class="variable">@generic</span><span class="symbol">://sys/class/freg/freg</span> <span class="comment"># echo '0' &gt; val                            </span></span><br><span class="line">root<span class="variable">@generic</span><span class="symbol">://sys/class/freg/freg</span> <span class="comment"># cat val                                   </span></span><br><span class="line"><span class="number">0</span></span><br><span class="line">/<span class="regexp">/成功显示</span></span><br></pre></td></tr></table></figure>
+<h4 id="开发C程序来验证dev文件系统访问虚拟寄存器的正确性"><a href="#开发C程序来验证dev文件系统访问虚拟寄存器的正确性" class="headerlink" title="开发C程序来验证dev文件系统访问虚拟寄存器的正确性"></a>开发C程序来验证dev文件系统访问虚拟寄存器的正确性</h4><p>通过c程序来对寄存器进行读写操作：<br>编写源文件：</p>
+<ul>
+<li>Android/external<ul>
+<li>freg  <ul>
+<li>freg.c  </li>
+<li>Android.mk</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>freg.c:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;fcntl.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> FREG_DEVICE_NAME <span class="string">"/dev/freg"</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">char</span>** argv)</span></span><br><span class="line"></span>&#123;</span><br><span class="line"> <span class="keyword">int</span> fd = <span class="number">-1</span>;</span><br><span class="line"> <span class="keyword">int</span> val = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line"> fd = open(FREG_DEVICE_NAME, O_RDWR);</span><br><span class="line"> <span class="keyword">if</span>(fd == <span class="number">-1</span>)</span><br><span class="line"> &#123;   </span><br><span class="line">     <span class="built_in">printf</span>(<span class="string">"Failed to open device %s.\n"</span>, FREG_DEVICE_NAME);</span><br><span class="line">     <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line"> &#125;   </span><br><span class="line"></span><br><span class="line"> <span class="built_in">printf</span>(<span class="string">"Read original value:\n"</span>);</span><br><span class="line"> read(fd, &amp;val, <span class="keyword">sizeof</span>(val));</span><br><span class="line"> <span class="built_in">printf</span>(<span class="string">"%d.\n\n"</span>, val);</span><br><span class="line"></span><br><span class="line"> val = <span class="number">5</span>;</span><br><span class="line"> <span class="built_in">printf</span>(<span class="string">"Write value %d to %s.\n\n"</span>, val, FREG_DEVICE_NAME);</span><br><span class="line">     write(fd, &amp;val, <span class="keyword">sizeof</span>(val));</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"> <span class="built_in">printf</span>(<span class="string">"Read the value again:\n"</span>);</span><br><span class="line">     read(fd, &amp;val, <span class="keyword">sizeof</span>(val));</span><br><span class="line">     <span class="built_in">printf</span>(<span class="string">"%d.\n\n"</span>, val);</span><br><span class="line"></span><br><span class="line"> close(fd);</span><br><span class="line"></span><br><span class="line"> <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p> freg.c 源文件的编译脚本文件:Android.mk<br> <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">LOCAL_PATH := $(call my-dir)</span><br><span class="line">include $(CLEAR_VARS)</span><br><span class="line">LOCAL_MODULE_TAGS := optional</span><br><span class="line">LOCAL_MODULE := freg</span><br><span class="line">LOCAL_SRC_FILES := $(call all-subdir-c-files)</span><br><span class="line">include $(BUILD_EXECUTABLE)</span><br></pre></td></tr></table></figure></p>
+<p>对于C程序来说，include后面的参数为BUILD_EXECUTABLE 可执行应用模块程序。编译结果在：<br>out/target/product/generic/system/bin中<br>编译：<br> <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">source</span> ./build/envsetup.sh</span><br><span class="line">mmm ./external/freg/</span><br><span class="line">make snod</span><br></pre></td></tr></table></figure></p>
+<p>进入Android系统执行<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">emulator -kerner /Kernel/goldfish-android-goldfish-3.4/arch/arm/boot/zImage &amp;</span><br><span class="line">adb shell</span><br><span class="line"><span class="built_in">cd</span> system/bin/</span><br><span class="line">./freg</span><br></pre></td></tr></table></figure></p>
+<h2 id="当我们看到了输出为5-，说明C程序可以执行，虚拟寄存器正常使用。"><a href="#当我们看到了输出为5-，说明C程序可以执行，虚拟寄存器正常使用。" class="headerlink" title="当我们看到了输出为5 ，说明C程序可以执行，虚拟寄存器正常使用。"></a>当我们看到了输出为5 ，说明C程序可以执行，虚拟寄存器正常使用。</h2><h2 id="开发Android硬件抽象层模块"><a href="#开发Android硬件抽象层模块" class="headerlink" title="开发Android硬件抽象层模块"></a>开发Android硬件抽象层模块</h2><h2 id="开发Android硬件访问服务"><a href="#开发Android硬件访问服务" class="headerlink" title="开发Android硬件访问服务"></a>开发Android硬件访问服务</h2><h2 id="开发Android应用程序来使用硬件访问服务"><a href="#开发Android应用程序来使用硬件访问服务" class="headerlink" title="开发Android应用程序来使用硬件访问服务"></a>开发Android应用程序来使用硬件访问服务</h2><blockquote>
+<p>声明： 相关内容及源代码参考老罗的《Android系统源代码情景分析》感谢老罗！</p>
+</blockquote>
+
+      
+    </div>
+
+    <div>
+      
+        
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/04/06/单独编译打包Android应用程序模块/" rel="next" title="单独编译打包Android应用程序模块">
+                <i class="fa fa-chevron-left"></i> 单独编译打包Android应用程序模块
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/04/16/IQ-test/" rel="prev" title="IQ test">
+                IQ test <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2016/04/07/Android系统-硬件抽象层探究-HAL/"
+           data-title="Android源代码基于goldfish-android-goldfish-3.4内核 硬件抽象层探究 HAL" data-url="http://coffee1993.github.io/2016/04/07/Android系统-硬件抽象层探究-HAL/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.jpg"
+               alt="voidzhang" />
+          <p class="site-author-name" itemprop="name">voidzhang</p>
+          <p class="site-description motion-element" itemprop="description">看到一片净土，让我远离死亡</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">25</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+          
+          
+            <div class="site-state-item site-state-categories">
+              <a href="/categories">
+                <span class="site-state-item-count">9</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">4</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/coffee1993" target="_blank">
+                  
+                    <i class="fa fa-github"></i> GitHub
+                  
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://blog.csdn.net/u010908743" target="_blank">
+                  
+                    <i class="fa fa-globe"></i> CSDN
+                  
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/u/2095698807?refer_flag=1005050010_&is_hot=1" target="_blank">
+                  
+                    <i class="fa fa-weibo"></i> Weibo
+                  
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        <div class="links-of-author motion-element">
+          
+            <p class="site-author-name">友情链接</p>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.ldc4.cn/" target="_blank">Ldc4_赵青松</a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://ikee.xin/" target="_blank">kee_李鑫</a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.king-liu.net/" target="_blank">king_刘凯</a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://ios.dog" target="_blank">boolean93_李竞熠</a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://notdeep.github.io/" target="_blank">果姐姐</a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://jucsinyu.com/" target="_blank">jucsinyu</a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://harry.wiki/" target="_blank">怡妹子</a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.cnblogs.com/duanv/" target="_blank">蔚蓝行</a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://blog.csdn.net/karchar" target="_blank">翔帅</a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/zmywly8866/Worth-Reading-the-Android-technical-articles" target="_blank">zmywly8866</a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://lizhuolun.com/" target="_blank">带你逛逛</a>
+              </span>
+            
+          
+        </div>
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc-indicator-top post-toc-indicator">
+            <i class="fa fa-angle-double-up"></i>
+          </div>
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#目的"><span class="nav-number">1.</span> <span class="nav-text">目的</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#探究的位置："><span class="nav-number">2.</span> <span class="nav-text">探究的位置：</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#开发Android硬件驱动程序"><span class="nav-number">3.</span> <span class="nav-text">开发Android硬件驱动程序</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#实现内核驱动模块"><span class="nav-number">3.1.</span> <span class="nav-text">实现内核驱动模块</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#修改Kconfig文件"><span class="nav-number">3.2.</span> <span class="nav-text">修改Kconfig文件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#修改内核Makefile文件"><span class="nav-number">3.3.</span> <span class="nav-text">修改内核Makefile文件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#编译内核驱动程序模块"><span class="nav-number">3.4.</span> <span class="nav-text">编译内核驱动程序模块</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#验证内核驱动程序模块"><span class="nav-number">3.5.</span> <span class="nav-text">验证内核驱动程序模块</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#proc文件系统接口访问虚拟寄存器验证"><span class="nav-number">3.5.1.</span> <span class="nav-text">proc文件系统接口访问虚拟寄存器验证</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#devfs-文件系统接口访问虚拟寄存器验证"><span class="nav-number">3.5.2.</span> <span class="nav-text">devfs 文件系统接口访问虚拟寄存器验证</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#开发C程序来验证dev文件系统访问虚拟寄存器的正确性"><span class="nav-number">3.5.3.</span> <span class="nav-text">开发C程序来验证dev文件系统访问虚拟寄存器的正确性</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#当我们看到了输出为5-，说明C程序可以执行，虚拟寄存器正常使用。"><span class="nav-number">4.</span> <span class="nav-text">当我们看到了输出为5 ，说明C程序可以执行，虚拟寄存器正常使用。</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#开发Android硬件抽象层模块"><span class="nav-number">5.</span> <span class="nav-text">开发Android硬件抽象层模块</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#开发Android硬件访问服务"><span class="nav-number">6.</span> <span class="nav-text">开发Android硬件访问服务</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#开发Android应用程序来使用硬件访问服务"><span class="nav-number">7.</span> <span class="nav-text">开发Android应用程序来使用硬件访问服务</span></a></li></ol></div>
+            
+          </div>
+          <div class="post-toc-indicator-bottom post-toc-indicator">
+            <i class="fa fa-angle-double-down"></i>
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2016</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">voidzhang</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="http://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Muse
+  </a>
+</div>
+
+
+
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+
+  
+
+
+
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js"></script>
+
+  <script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js"></script>
+
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=0.5.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=0.5.0"></script>
+
+
+
+  
+  
+
+  
+  
+<script type="text/javascript" src="/js/src/scrollspy.js?v=0.5.0"></script>
+
+<script type="text/javascript" id="sidebar.toc.highlight">
+  $(document).ready(function () {
+    var tocSelector = '.post-toc';
+    var $tocSelector = $(tocSelector);
+    var activeCurrentSelector = '.active-current';
+
+    $tocSelector
+      .on('activate.bs.scrollspy', function () {
+        var $currentActiveElement = $(tocSelector + ' .active').last();
+
+        removeCurrentActiveClass();
+        $currentActiveElement.addClass('active-current');
+
+        $tocSelector[0].scrollTop = $currentActiveElement.position().top;
+      })
+      .on('clear.bs.scrollspy', function () {
+        removeCurrentActiveClass();
+      });
+
+    function removeCurrentActiveClass () {
+      $(tocSelector + ' ' + activeCurrentSelector)
+        .removeClass(activeCurrentSelector.substring(1));
+    }
+
+    function processTOC () {
+      getTOCMaxHeight();
+      toggleTOCOverflowIndicators();
+    }
+
+    function getTOCMaxHeight () {
+      var height = $('.sidebar').height() -
+                   $tocSelector.position().top -
+                   $('.post-toc-indicator-bottom').height();
+
+      $tocSelector.css('height', height);
+
+      return height;
+    }
+
+    function toggleTOCOverflowIndicators () {
+      tocOverflowIndicator(
+        '.post-toc-indicator-top',
+        $tocSelector.scrollTop() > 0 ? 'show' : 'hide'
+      );
+
+      tocOverflowIndicator(
+        '.post-toc-indicator-bottom',
+        $tocSelector.scrollTop() >= $tocSelector.find('ol').height() - $tocSelector.height() ? 'hide' : 'show'
+      )
+    }
+
+    $(document).on('sidebar.motion.complete', function () {
+      processTOC();
+    });
+
+    $('body').scrollspy({ target: tocSelector });
+    $(window).on('resize', function () {
+      if ( $('.sidebar').hasClass('sidebar-active') ) {
+        processTOC();
+      }
+    });
+
+    onScroll($tocSelector);
+
+    function onScroll (element) {
+      element.on('mousewheel DOMMouseScroll', function (event) {
+          var oe = event.originalEvent;
+          var delta = oe.wheelDelta || -oe.detail;
+
+          this.scrollTop += ( delta < 0 ? 1 : -1 ) * 30;
+          event.preventDefault();
+
+          toggleTOCOverflowIndicators();
+      });
+    }
+
+    function tocOverflowIndicator (indicator, action) {
+      var $indicator = $(indicator);
+      var opacity = action === 'show' ? 1 : 0;
+      $indicator.velocity ?
+        $indicator.velocity('stop').velocity({
+          opacity: opacity
+        }, { duration: 100 }) :
+        $indicator.stop().animate({
+          opacity: opacity
+        }, 100);
+    }
+
+  });
+</script>
+
+<script type="text/javascript" id="sidebar.nav">
+  $(document).ready(function () {
+    var html = $('html');
+    var TAB_ANIMATE_DURATION = 200;
+    var hasVelocity = $.isFunction(html.velocity);
+
+    $('.sidebar-nav li').on('click', function () {
+      var item = $(this);
+      var activeTabClassName = 'sidebar-nav-active';
+      var activePanelClassName = 'sidebar-panel-active';
+      if (item.hasClass(activeTabClassName)) {
+        return;
+      }
+
+      var currentTarget = $('.' + activePanelClassName);
+      var target = $('.' + item.data('target'));
+
+      hasVelocity ?
+        currentTarget.velocity('transition.slideUpOut', TAB_ANIMATE_DURATION, function () {
+          target
+            .velocity('stop')
+            .velocity('transition.slideDownIn', TAB_ANIMATE_DURATION)
+            .addClass(activePanelClassName);
+        }) :
+        currentTarget.animate({ opacity: 0 }, TAB_ANIMATE_DURATION, function () {
+          currentTarget.hide();
+          target
+            .stop()
+            .css({'opacity': 0, 'display': 'block'})
+            .animate({ opacity: 1 }, TAB_ANIMATE_DURATION, function () {
+              currentTarget.removeClass(activePanelClassName);
+              target.addClass(activePanelClassName);
+            });
+        });
+
+      item.siblings().removeClass(activeTabClassName);
+      item.addClass(activeTabClassName);
+    });
+
+    $('.post-toc a').on('click', function (e) {
+      e.preventDefault();
+      var targetSelector = NexT.utils.escapeSelector(this.getAttribute('href'));
+      var offset = $(targetSelector).offset().top;
+      hasVelocity ?
+        html.velocity('stop').velocity('scroll', {
+          offset: offset  + 'px',
+          mobileHA: false
+        }) :
+        $('html, body').stop().animate({
+          scrollTop: offset
+        }, 500);
+    });
+
+    // Expand sidebar on post detail page by default, when post has a toc.
+    NexT.motion.middleWares.sidebar = function () {
+      var $tocContent = $('.post-toc-content');
+
+      if (CONFIG.scheme !== 'Pisces' && (CONFIG.sidebar.display === 'post' || CONFIG.sidebar.display === 'always')) {
+        if ($tocContent.length > 0 && $tocContent.html().trim().length > 0) {
+          NexT.utils.displaySidebar();
+        }
+      }
+    };
+  });
+</script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=0.5.0"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"void"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+  
+
+
+
+
+
+  
+  
+  
+
+  
+
+
+</body>
+</html>

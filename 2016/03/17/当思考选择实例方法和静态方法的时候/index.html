@@ -1,0 +1,1080 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css"/>
+
+
+
+
+  <link href="//fonts.googleapis.com/css?family=Lato:300,400,700,400italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=0.5.0" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Hexo, NexT" />
+
+
+
+
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=0.5.0" />
+
+
+
+
+
+
+<meta name="description" content="在写项目的时候，遇到一个wifi模块的工具类，我把它做成了单例模式，但是为何不把它做成实例，或者全是静态方法呢，开发中也常常考虑这些方法用类的实例的对象调用，还是用静态的方法直接调用，这个问题可能很多的程序员都思考过，我们到底如何选择呢？">
+<meta property="og:type" content="article">
+<meta property="og:title" content="当思考选择实例方法和静态方法的时候">
+<meta property="og:url" content="http://coffee1993.github.io/2016/03/17/当思考选择实例方法和静态方法的时候/index.html">
+<meta property="og:site_name" content="空">
+<meta property="og:description" content="在写项目的时候，遇到一个wifi模块的工具类，我把它做成了单例模式，但是为何不把它做成实例，或者全是静态方法呢，开发中也常常考虑这些方法用类的实例的对象调用，还是用静态的方法直接调用，这个问题可能很多的程序员都思考过，我们到底如何选择呢？">
+<meta property="og:updated_time" content="2016-05-27T13:47:06.789Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="当思考选择实例方法和静态方法的时候">
+<meta name="twitter:description" content="在写项目的时候，遇到一个wifi模块的工具类，我把它做成了单例模式，但是为何不把它做成实例，或者全是静态方法呢，开发中也常常考虑这些方法用类的实例的对象调用，还是用静态的方法直接调用，这个问题可能很多的程序员都思考过，我们到底如何选择呢？">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Muse',
+    sidebar: {"position":"left","display":"post"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: 0,
+      author: '博主'
+    }
+  };
+</script>
+
+  <title> 当思考选择实例方法和静态方法的时候 | 空 </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">空</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">我要信奉:我学过的每一样东西，我遭受的每一样苦难，都会在我一生中的某个时候派上用场 ——佩内洛普·菲兹杰拉德 《离岸》</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-home fa-fw"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-th fa-fw"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-archive fa-fw"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-tags fa-fw"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-user fa-fw"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+
+      <li> <a title="把这个链接拖到你的Chrome收藏夹工具栏中" href='javascript:(function() {
+    function c() {
+        var e = document.createElement("link");
+        e.setAttribute("type", "text/css");
+        e.setAttribute("rel", "stylesheet");
+        e.setAttribute("href", f);
+        e.setAttribute("class", l);
+        document.body.appendChild(e)
+    }
+
+    function h() {
+        var e = document.getElementsByClassName(l);
+        for (var t = 0; t < e.length; t++) {
+            document.body.removeChild(e[t])
+        }
+    }
+
+    function p() {
+        var e = document.createElement("div");
+        e.setAttribute("class", a);
+        document.body.appendChild(e);
+        setTimeout(function() {
+            document.body.removeChild(e)
+        }, 100)
+    }
+
+    function d(e) {
+        return {
+            height : e.offsetHeight,
+            width : e.offsetWidth
+        }
+    }
+
+    function v(i) {
+        var s = d(i);
+        return s.height > e && s.height < n && s.width > t && s.width < r
+    }
+
+    function m(e) {
+        var t = e;
+        var n = 0;
+        while (!!t) {
+            n += t.offsetTop;
+            t = t.offsetParent
+        }
+        return n
+    }
+
+    function g() {
+        var e = document.documentElement;
+        if (!!window.innerWidth) {
+            return window.innerHeight
+        } else if (e && !isNaN(e.clientHeight)) {
+            return e.clientHeight
+        }
+        return 0
+    }
+
+    function y() {
+        if (window.pageYOffset) {
+            return window.pageYOffset
+        }
+        return Math.max(document.documentElement.scrollTop, document.body.scrollTop)
+    }
+
+    function E(e) {
+        var t = m(e);
+        return t >= w && t <= b + w
+    }
+
+    function S() {
+        var e = document.createElement("audio");
+        e.setAttribute("class", l);
+        e.src = i;
+        e.loop = false;
+        e.addEventListener("canplay", function() {
+            setTimeout(function() {
+                x(k)
+            }, 500);
+            setTimeout(function() {
+                N();
+                p();
+                for (var e = 0; e < O.length; e++) {
+                    T(O[e])
+                }
+            }, 15500)
+        }, true);
+        e.addEventListener("ended", function() {
+            N();
+            h()
+        }, true);
+        e.innerHTML = " <p>If you are reading this, it is because your browser does not support the audio element. We recommend that you get a new browser.</p> <p>";
+        document.body.appendChild(e);
+        e.play()
+    }
+
+    function x(e) {
+        e.className += " " + s + " " + o
+    }
+
+    function T(e) {
+        e.className += " " + s + " " + u[Math.floor(Math.random() * u.length)]
+    }
+
+    function N() {
+        var e = document.getElementsByClassName(s);
+        var t = new RegExp("\\b" + s + "\\b");
+        for (var n = 0; n < e.length; ) {
+            e[n].className = e[n].className.replace(t, "")
+        }
+    }
+
+    var e = 30;
+    var t = 30;
+    var n = 350;
+    var r = 350;
+    var i = "//s3.amazonaws.com/moovweb-marketing/playground/harlem-shake.mp3";
+    var s = "mw-harlem_shake_me";
+    var o = "im_first";
+    var u = ["im_drunk", "im_baked", "im_trippin", "im_blown"];
+    var a = "mw-strobe_light";
+    var f = "//s3.amazonaws.com/moovweb-marketing/playground/harlem-shake-style.css";
+    var l = "mw_added_css";
+    var b = g();
+    var w = y();
+    var C = document.getElementsByTagName("*");
+    var k = null;
+    for (var L = 0; L < C.length; L++) {
+        var A = C[L];
+        if (v(A)) {
+            if (E(A)) {
+                k = A;
+                break
+            }
+        }
+    }
+    if (A === null) {
+        console.warn("Could not find a node of the right size. Please try a different page.");
+        return
+    }
+    c();
+    S();
+    var O = [];
+    for (var L = 0; L < C.length; L++) {
+        var A = C[L];
+        if (v(A)) {
+            O.push(A)
+        }
+    }
+})()    '>High一下</a> </li>
+
+      
+
+
+    </ul>
+  
+
+  
+</nav>
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                当思考选择实例方法和静态方法的时候
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-03-17T12:44:52+08:00" content="2016-03-17">
+              2016-03-17
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/编程之美/" itemprop="url" rel="index">
+                    <span itemprop="name">编程之美</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2016/03/17/当思考选择实例方法和静态方法的时候/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/03/17/当思考选择实例方法和静态方法的时候/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <blockquote>
+<p>在写项目的时候，遇到一个wifi模块的工具类，我把它做成了单例模式，但是为何不把它做成实例，或者全是静态方法呢，开发中也常常考虑这些方法用类的实例的对象调用，还是用静态的方法直接调用，这个问题可能很多的程序员都思考过，我们到底如何选择呢？</p>
+</blockquote>
+<a id="more"></a>
+<h3 id="简单的说："><a href="#简单的说：" class="headerlink" title="简单的说："></a>简单的说：</h3><ul>
+<li><p>静态方法：</p>
+  <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Test</span></span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">method</span><span class="params">()</span></span>&#123;</span><br><span class="line">    ...</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">//方法调用</span></span><br><span class="line">  main()&#123;</span><br><span class="line">    Test.method();</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>实例方法</p>
+  <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Test</span></span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">method</span><span class="params">()</span></span>&#123;</span><br><span class="line">    ...</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">//方法调用</span></span><br><span class="line">  main()&#123;</span><br><span class="line">    Test test = <span class="keyword">new</span> Test();</span><br><span class="line">    test.method();</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<blockquote>
+<p>以java为例，如果要谈他们如何初始化，需要从类加载机制说起，先说结论吧：</p>
+</blockquote>
+<h3 id="结论："><a href="#结论：" class="headerlink" title="结论："></a>结论：</h3><blockquote>
+<p>那就是实例化方法更多被使用和稳妥，静态方法少使用。</p>
+</blockquote>
+<h3 id="引用"><a href="#引用" class="headerlink" title="引用"></a>引用</h3><blockquote>
+<p>为此我查了很多资料，找到一篇访问,借来引用一下：</p>
+</blockquote>
+<p>以“你怎么理解并使用静态方法和实例化方法的？”这样的问题询问了多位程序员，他们开发的语言也不尽相同（c 、c++、java、c#）</p>
+<p>以下是他们的回答：</p>
+<hr>
+<p>海龙说：</p>
+<p>公用的方法，而且是一些零散的 一般用静态方法</p>
+<hr>
+<p>张伟说：</p>
+<p><strong>几乎没有区别</strong>，如果不需要实例化，就用静态方法；如果为了稳妥，就用实例方法，这样才可调用其他实例方法和变量 。</p>
+<hr>
+<p>萧远山说：</p>
+<p><em>静态方法比较少用，因为他在一启动就实例化了，比较占资源</em>，当然,配合单例模式还是比较好用的<br>比较多的用在数据连接上，我避免使用的原则就是减少资源消耗。</p>
+<hr>
+<p>张新波说：</p>
+<p>静态方法意味着我在调用前不需要进行对其所属的类进行new操作，我主要会在工具类里面用到静态方法。</p>
+<hr>
+<p>向详说：</p>
+<p>静态就是类的，实例就是对象的。<br>静态方法和实例方法的区别之处还有一个地方：<strong>静态方法不需要依赖类当中的属性</strong> ，能在这个方法中封闭的完成一个功能。实例方法更多的会使用到类当中的属性。</p>
+<hr>
+<p>winson_张林说：</p>
+<p><em>最大的区别在于内存</em>。<br><em>静态方法在程序开始时生成内存,实例方法在程序运行中生成内存</em>，<br>所以静态方法可以直接调用,实例方法要先成生实例,通过实例调用方法，<em>静态速度很快,但是多了会占内存。</em><br>任何语言都是对内存和磁盘的操作,至于是否面向对象,只是软件层的问题,底层都是一样的,只是实现方法不同。<br><em>静态内存是连续的,因为是在程序开始时就生成了,而实例申请的是离散的空间,所以当然没有静态方法快，<br>而且静态内存是有限制的，太多了程序会启动不了。</em></p>
+<hr>
+<p>showlover说:</p>
+<p>静态方法与实例方法各有自己的用处…</p>
+<p>是定义成静态方法,还是定义成实例方法,还要看具体情况,比如 <strong>方法本身与类型没有太大的关系,可以定义成静态方法.</strong></p>
+<p>用实例方法,当然需要你先创建实例,才能调用实例方法,而静态方法则不需要..</p>
+<p>从性能上说,静态方法效率要稍微高一些,但是它会常驻内存…<br>一些情况下使用静态方法是有好处的，因为对于静态方法无论你有多少个实例，<br>内存中要维护的一份拷贝。同时，某些方法，确实使用静态是比较恰当的..</p>
+<hr>
+<p>Q.yuhen说:</p>
+<p>这个问题牵扯到的东西比较多，诸如设计模式等等。简单点说，<strong>静态方法用来执行无状态的一个完整操作，实例方法则相反，它通常是一个完整逻辑的一部分，并且需要维护一定的状态值。</strong></p>
+<p><strong>如果用内存和效率来区分使用Static Method、Instance Method 就回到过去结构化编程了。使用那种方法的根本出发点还是围绕面向对象来进行的</strong>。</p>
+<hr>
+<p>陈亮说：</p>
+<p>静态方法和全局函数差不多的，实例方法是一个类里面的方法。</p>
+<hr>
+<h3 id="网上有些博客有误的说明："><a href="#网上有些博客有误的说明：" class="headerlink" title="网上有些博客有误的说明："></a>网上有些博客有误的说明：</h3><blockquote>
+<p>静态方法与非静态方法的区别  </p>
+</blockquote>
+<ul>
+<li><p>静态方法（Static Method）与静态成员变量一样，属于类本身，在类装载的时候被装载到内存（Memory），不自动进行销毁，会一直存在于内存中，直到JVM关闭。</p>
+</li>
+<li><p>非静态方法（Non-Static Method）又叫实例化方法，属于实例对象，实例化后才会分配内存，必须通过类的实例来引用。不会常驻内存，当实例对象被JVM 回收之后，也跟着消失。</p>
+</li>
+<li><p>在内存中存储位置</p>
+<ul>
+<li><p>静态方法和静态变量创建后始终使用同一块内存，是连续的。</p>
+</li>
+<li><p>非静态方法会存在于内存的多个地方，是离散的。</p>
+</li>
+<li>静态方法在堆上分配内存，实例方法在堆栈上。</li>
+</ul>
+</li>
+<li><p>效率</p>
+<ul>
+<li>静态方法常驻内存，实例方法不是，所以静态方法效率高但占内存</li>
+<li>静态方法的使用效率比非静态方法的效率高。</li>
+</ul>
+</li>
+<li><p>线程安全</p>
+<ul>
+<li><p>静态方法是共享代码段，静态变量是共享数据段。既然是“共享”就有并发（Concurrence）的问题。</p>
+</li>
+<li><p>非静态方法是针对确定的一个对象的，所以不会存在线程安全的问题。</p>
+</li>
+</ul>
+</li>
+<li><p>使用范围</p>
+<ul>
+<li>静态方法：<ul>
+<li>1.有静态属性的类，一般会定义静态方法。</li>
+<li>2.没有属性的类，一般会定义静态方法。</li>
+<li>3.如果一个方法与他所在类的实例对象无关，那么它就应该是静态的。静态方法可以被继承但是不能被覆盖。</li>
+</ul>
+</li>
+<li>实例方法<ul>
+<li>1.需要先创建实例才可以调用，比较麻烦，静态方法不用，比较简单。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<ul>
+<li>总计<ul>
+<li>如果静态方法在系统中定义太多，会占用大量的资源，最后造成内存溢出，所以静态方法不能滥用。如果从线程安全、性能、兼容性上来看，选用实例化方法为宜。</li>
+</ul>
+</li>
+</ul>
+<h3 id="我的总结："><a href="#我的总结：" class="headerlink" title="我的总结："></a>我的总结：</h3><blockquote>
+<p>查阅资料,上面的牛人大多都有一致的观点，但也有我们常提到的几个误区，以下是正确的结论：</p>
+<ul>
+<li>1.静态方法和实例方法其实在性能上没有区别，加载时机，和内存占用都一样，调用速度也没有区别。</li>
+<li>2.早期的结构化编程，几乎所有的方法都是“静态方法”，引入实例化方法概念是面向对象概念出现以后的事情了，区分静态方法和实例化方法不能单单从性能上去理解，创建c++,java,c#这样面向对象语言的大师引入实例化方法一定不是要解决什么性能、内存的问题，而是为了让开发更加模式化、面向对象化。这样说的话，静态方法和实例化方式的区分是为了解决模式的问题。</li>
+<li>3.开发时如何选择：<ul>
+<li>从面向对象的角度上来说，在抉择使用实例化方法或静态方法时，应该根据是否该方法和实例化对象具有逻辑上的相关性，如果是就应该使用实例化对象  反之使用静态方法，其实用两个方法在效率和性能上影响并不大，根据自己程序设计来解决问题。</li>
+</ul>
+</li>
+</ul>
+<p>引用链接：<a href="http://www.cnblogs.com/chinhr/archive/2008/04/03/1135561.html" target="_blank" rel="external">http://www.cnblogs.com/chinhr/archive/2008/04/03/1135561.html</a></p>
+</blockquote>
+
+      
+    </div>
+
+    <div>
+      
+        
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/03/16/vimium的日常/" rel="next" title="vimium的日常">
+                <i class="fa fa-chevron-left"></i> vimium的日常
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/03/18/Wifi加密技术的简单了解/" rel="prev" title="Wifi加密技术的简单了解">
+                Wifi加密技术的简单了解 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2016/03/17/当思考选择实例方法和静态方法的时候/"
+           data-title="当思考选择实例方法和静态方法的时候" data-url="http://coffee1993.github.io/2016/03/17/当思考选择实例方法和静态方法的时候/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.jpg"
+               alt="voidzhang" />
+          <p class="site-author-name" itemprop="name">voidzhang</p>
+          <p class="site-description motion-element" itemprop="description">看到一片净土，让我远离死亡</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">25</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+          
+          
+            <div class="site-state-item site-state-categories">
+              <a href="/categories">
+                <span class="site-state-item-count">9</span>
+                <span class="site-state-item-name">分类</span>
+              </a>
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">4</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/coffee1993" target="_blank">
+                  
+                    <i class="fa fa-github"></i> GitHub
+                  
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://blog.csdn.net/u010908743" target="_blank">
+                  
+                    <i class="fa fa-globe"></i> CSDN
+                  
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/u/2095698807?refer_flag=1005050010_&is_hot=1" target="_blank">
+                  
+                    <i class="fa fa-weibo"></i> Weibo
+                  
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+
+        <div class="links-of-author motion-element">
+          
+            <p class="site-author-name">友情链接</p>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.ldc4.cn/" target="_blank">Ldc4_赵青松</a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://ikee.xin/" target="_blank">kee_李鑫</a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.king-liu.net/" target="_blank">king_刘凯</a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://ios.dog" target="_blank">boolean93_李竞熠</a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://notdeep.github.io/" target="_blank">果姐姐</a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://jucsinyu.com/" target="_blank">jucsinyu</a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://harry.wiki/" target="_blank">怡妹子</a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.cnblogs.com/duanv/" target="_blank">蔚蓝行</a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://blog.csdn.net/karchar" target="_blank">翔帅</a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/zmywly8866/Worth-Reading-the-Android-technical-articles" target="_blank">zmywly8866</a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://lizhuolun.com/" target="_blank">带你逛逛</a>
+              </span>
+            
+          
+        </div>
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc-indicator-top post-toc-indicator">
+            <i class="fa fa-angle-double-up"></i>
+          </div>
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#简单的说："><span class="nav-number">1.</span> <span class="nav-text">简单的说：</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#结论："><span class="nav-number">2.</span> <span class="nav-text">结论：</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#引用"><span class="nav-number">3.</span> <span class="nav-text">引用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#网上有些博客有误的说明："><span class="nav-number">4.</span> <span class="nav-text">网上有些博客有误的说明：</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#我的总结："><span class="nav-number">5.</span> <span class="nav-text">我的总结：</span></a></li></ol></div>
+            
+          </div>
+          <div class="post-toc-indicator-bottom post-toc-indicator">
+            <i class="fa fa-angle-double-down"></i>
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2016</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">voidzhang</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="http://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Muse
+  </a>
+</div>
+
+
+
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+
+  
+
+
+
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js"></script>
+
+  <script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js"></script>
+
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=0.5.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=0.5.0"></script>
+
+
+
+  
+  
+
+  
+  
+<script type="text/javascript" src="/js/src/scrollspy.js?v=0.5.0"></script>
+
+<script type="text/javascript" id="sidebar.toc.highlight">
+  $(document).ready(function () {
+    var tocSelector = '.post-toc';
+    var $tocSelector = $(tocSelector);
+    var activeCurrentSelector = '.active-current';
+
+    $tocSelector
+      .on('activate.bs.scrollspy', function () {
+        var $currentActiveElement = $(tocSelector + ' .active').last();
+
+        removeCurrentActiveClass();
+        $currentActiveElement.addClass('active-current');
+
+        $tocSelector[0].scrollTop = $currentActiveElement.position().top;
+      })
+      .on('clear.bs.scrollspy', function () {
+        removeCurrentActiveClass();
+      });
+
+    function removeCurrentActiveClass () {
+      $(tocSelector + ' ' + activeCurrentSelector)
+        .removeClass(activeCurrentSelector.substring(1));
+    }
+
+    function processTOC () {
+      getTOCMaxHeight();
+      toggleTOCOverflowIndicators();
+    }
+
+    function getTOCMaxHeight () {
+      var height = $('.sidebar').height() -
+                   $tocSelector.position().top -
+                   $('.post-toc-indicator-bottom').height();
+
+      $tocSelector.css('height', height);
+
+      return height;
+    }
+
+    function toggleTOCOverflowIndicators () {
+      tocOverflowIndicator(
+        '.post-toc-indicator-top',
+        $tocSelector.scrollTop() > 0 ? 'show' : 'hide'
+      );
+
+      tocOverflowIndicator(
+        '.post-toc-indicator-bottom',
+        $tocSelector.scrollTop() >= $tocSelector.find('ol').height() - $tocSelector.height() ? 'hide' : 'show'
+      )
+    }
+
+    $(document).on('sidebar.motion.complete', function () {
+      processTOC();
+    });
+
+    $('body').scrollspy({ target: tocSelector });
+    $(window).on('resize', function () {
+      if ( $('.sidebar').hasClass('sidebar-active') ) {
+        processTOC();
+      }
+    });
+
+    onScroll($tocSelector);
+
+    function onScroll (element) {
+      element.on('mousewheel DOMMouseScroll', function (event) {
+          var oe = event.originalEvent;
+          var delta = oe.wheelDelta || -oe.detail;
+
+          this.scrollTop += ( delta < 0 ? 1 : -1 ) * 30;
+          event.preventDefault();
+
+          toggleTOCOverflowIndicators();
+      });
+    }
+
+    function tocOverflowIndicator (indicator, action) {
+      var $indicator = $(indicator);
+      var opacity = action === 'show' ? 1 : 0;
+      $indicator.velocity ?
+        $indicator.velocity('stop').velocity({
+          opacity: opacity
+        }, { duration: 100 }) :
+        $indicator.stop().animate({
+          opacity: opacity
+        }, 100);
+    }
+
+  });
+</script>
+
+<script type="text/javascript" id="sidebar.nav">
+  $(document).ready(function () {
+    var html = $('html');
+    var TAB_ANIMATE_DURATION = 200;
+    var hasVelocity = $.isFunction(html.velocity);
+
+    $('.sidebar-nav li').on('click', function () {
+      var item = $(this);
+      var activeTabClassName = 'sidebar-nav-active';
+      var activePanelClassName = 'sidebar-panel-active';
+      if (item.hasClass(activeTabClassName)) {
+        return;
+      }
+
+      var currentTarget = $('.' + activePanelClassName);
+      var target = $('.' + item.data('target'));
+
+      hasVelocity ?
+        currentTarget.velocity('transition.slideUpOut', TAB_ANIMATE_DURATION, function () {
+          target
+            .velocity('stop')
+            .velocity('transition.slideDownIn', TAB_ANIMATE_DURATION)
+            .addClass(activePanelClassName);
+        }) :
+        currentTarget.animate({ opacity: 0 }, TAB_ANIMATE_DURATION, function () {
+          currentTarget.hide();
+          target
+            .stop()
+            .css({'opacity': 0, 'display': 'block'})
+            .animate({ opacity: 1 }, TAB_ANIMATE_DURATION, function () {
+              currentTarget.removeClass(activePanelClassName);
+              target.addClass(activePanelClassName);
+            });
+        });
+
+      item.siblings().removeClass(activeTabClassName);
+      item.addClass(activeTabClassName);
+    });
+
+    $('.post-toc a').on('click', function (e) {
+      e.preventDefault();
+      var targetSelector = NexT.utils.escapeSelector(this.getAttribute('href'));
+      var offset = $(targetSelector).offset().top;
+      hasVelocity ?
+        html.velocity('stop').velocity('scroll', {
+          offset: offset  + 'px',
+          mobileHA: false
+        }) :
+        $('html, body').stop().animate({
+          scrollTop: offset
+        }, 500);
+    });
+
+    // Expand sidebar on post detail page by default, when post has a toc.
+    NexT.motion.middleWares.sidebar = function () {
+      var $tocContent = $('.post-toc-content');
+
+      if (CONFIG.scheme !== 'Pisces' && (CONFIG.sidebar.display === 'post' || CONFIG.sidebar.display === 'always')) {
+        if ($tocContent.length > 0 && $tocContent.html().trim().length > 0) {
+          NexT.utils.displaySidebar();
+        }
+      }
+    };
+  });
+</script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=0.5.0"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"void"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+  
+
+
+
+
+
+  
+  
+  
+
+  
+
+
+</body>
+</html>
